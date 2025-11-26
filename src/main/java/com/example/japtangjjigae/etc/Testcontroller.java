@@ -1,4 +1,4 @@
-package com.example.japtangjjigae;
+package com.example.japtangjjigae.etc;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
