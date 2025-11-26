@@ -1,12 +1,13 @@
 package com.example.japtangjjigae.user.dto;
 
+import com.example.japtangjjigae.user.common.OAuthProvider;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 
 
 @Getter
-public class KakaoSignupRequestDTO {
+public class SignupRequestDTO {
 
     @NotBlank(message = "소셜회원가입 위한 티켓값 필수")
     private String socialSignupTicket;
@@ -20,5 +21,8 @@ public class KakaoSignupRequestDTO {
         message = "핸드폰 번호 형식틀림"
     )
     private String phone;
+
+    @NotBlank
+    private OAuthProvider oAuthProvider;
 
 }

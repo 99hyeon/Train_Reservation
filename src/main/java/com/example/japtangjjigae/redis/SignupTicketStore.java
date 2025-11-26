@@ -8,5 +8,5 @@ public interface SignupTicketStore {
     Optional<SignupTicketValue> get(String ticket);
     void invalidate(String ticket);
 
-    record SignupTicketValue(Long kakaoId, OAuthProvider provider){}
+    record SignupTicketValue(String providerId, OAuthProvider provider){}
 }

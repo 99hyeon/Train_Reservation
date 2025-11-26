@@ -2,9 +2,9 @@ package com.example.japtangjjigae.user.controller;
 
 import com.example.japtangjjigae.global.response.ApiResponse;
 import com.example.japtangjjigae.global.response.code.UserResponseCode;
-import com.example.japtangjjigae.user.dto.KakaoSignupRequestDTO;
-import com.example.japtangjjigae.user.dto.KakaoSignupResponseDTO;
-import com.example.japtangjjigae.user.service.KakaoLoginService;
+import com.example.japtangjjigae.user.dto.SignupRequestDTO;
+import com.example.japtangjjigae.user.dto.signupResponseDTO;
+import com.example.japtangjjigae.user.service.LoginService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -23,21 +23,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1")
-public class KakaoLoginController {
+public class LoginController {
 
-    private final KakaoLoginService kakaoLoginService;
+    private final LoginService loginService;
 
     @Operation(
-        summary = "카카오 정보로 회원가입 api",
+        summary = "회원가입 api",
         description = "최초로 로그인 할 시 회원가입할 api"
     )
     @PostMapping("/users")
-    public ResponseEntity<ApiResponse<KakaoSignupResponseDTO>> signUp(@RequestBody
-    KakaoSignupRequestDTO requestDto) {
+    public ResponseEntity<ApiResponse<signupResponseDTO>> signUp(@RequestBody
+    SignupRequestDTO requestDto) {
 
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiResponse.from(UserResponseCode.SUCCESS_SIGNUP,
-                kakaoLoginService.signUp(requestDto)));
+                loginService.signUp(requestDto)));
     }
 
     @Operation(

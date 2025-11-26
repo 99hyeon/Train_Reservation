@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    Optional<User> findBySocialIdAndOAuthProvider(Long socialId, OAuthProvider socialType);
+    Optional<User> findBySocialIdAndOAuthProvider(String socialId, OAuthProvider socialType);
+    Optional<User> findByNameAndPhone(String name, String phone);
 
 }

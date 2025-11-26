@@ -4,8 +4,8 @@ import com.example.japtangjjigae.exception.handler.UserDuplicateException;
 import com.example.japtangjjigae.global.response.code.UserResponseCode;
 import com.example.japtangjjigae.redis.SignupTicketStore;
 import com.example.japtangjjigae.redis.SignupTicketStore.SignupTicketValue;
-import com.example.japtangjjigae.user.dto.KakaoSignupRequestDTO;
-import com.example.japtangjjigae.user.dto.KakaoSignupResponseDTO;
+import com.example.japtangjjigae.user.dto.SignupRequestDTO;
+import com.example.japtangjjigae.user.dto.signupResponseDTO;
 import com.example.japtangjjigae.user.entity.User;
 import com.example.japtangjjigae.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,29 +15,28 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class KakaoLoginService {
+public class LoginService {
 
     private final UserRepository userRepository;
     private final SignupTicketStore signupTicketStore;
 
-    public KakaoSignupResponseDTO signUp(KakaoSignupRequestDTO requestDto) {
+    public signupResponseDTO signUp(SignupRequestDTO requestDto) {
         SignupTicketValue signupTicketValue = signupTicketStore.get(
             requestDto.getSocialSignupTicket()).orElse(null);
         signupTicketStore.invalidate(requestDto.getSocialSignupTicket());
 
-        User findUser = userRepository.findBySocialIdAndOAuthProvider(signupTicketValue.kakaoId(),
-            signupTicketValue.provider()).orElse(null);
+        User findUser = userRepository.findByNameAndPhone(requestDto.getName(), requestDto.getPhone()).orElse(null);
 
-        if (findUser != null) {
-            throw new UserDuplicateException(UserResponseCode.USER_DUPLICATE);
+        if (findUser != null && requestDto.getOAuthProvider() != signupTicketValue.provider()) {
+            throw new UserDuplicateException(UserResponseCode.ALREADY_LIKED_SOCIAL_ACCOUNT);
         }
 
-        User user = User.createUser(signupTicketValue.kakaoId(), signupTicketValue.provider(),
+        User user = User.createUser(signupTicketValue.providerId(), signupTicketValue.provider(),
             requestDto.getName(), requestDto.getPhone());
 
         User savedUser = userRepository.save(user);
 
-        return new KakaoSignupResponseDTO(savedUser.getId());
+        return new signupResponseDTO(savedUser.getId(), requestDto.getOAuthProvider());
     }
 
 }

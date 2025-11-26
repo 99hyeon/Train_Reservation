@@ -17,7 +17,7 @@ public class RedisSignupTicketStore implements SignupTicketStore {
     @Override
     public void save(String ticket, SignupTicketValue value, long ttlSeconds) {
         String key = KEY + ticket;
-        String payload = value.kakaoId() + ":" + value.provider();
+        String payload = value.providerId() + ":" + value.provider();
         stringRedisTemplate.opsForValue().set(key, payload, Duration.ofSeconds(ttlSeconds));
     }
 
@@ -29,7 +29,7 @@ public class RedisSignupTicketStore implements SignupTicketStore {
 
         String[] p = s.split(":", 2);
 
-        return Optional.of(new SignupTicketValue(Long.parseLong(p[0]), OAuthProvider.valueOf(p[1])));
+        return Optional.of(new SignupTicketValue(p[0], OAuthProvider.valueOf(p[1])));
     }
 
     @Override

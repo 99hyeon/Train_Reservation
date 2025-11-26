@@ -76,8 +76,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             throw oauth2Exception(AuthResponseCode.OAUTH2_UNSUPPORTED_PROVIDER);
         }
 
-        Long providerId = parseProviderId(response.getProviderId());
-        return new ProviderInfo(provider, providerId);
+        return new ProviderInfo(provider, response.getProviderId());
     }
 
     private Long parseProviderId(String providerId) {
@@ -93,7 +92,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         return new OAuth2AuthenticationException(error);
     }
 
-    private record ProviderInfo(OAuthProvider provider, Long providerId) {
+    private record ProviderInfo(OAuthProvider provider, String providerId) {
 
     }
 

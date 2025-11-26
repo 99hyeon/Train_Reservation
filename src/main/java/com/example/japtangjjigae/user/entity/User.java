@@ -21,14 +21,14 @@ public class User extends BaseEntity {
     private Long id;
 
     @Column(nullable = false)
-    private Long socialId;
+    private String socialId;
     @Enumerated(EnumType.STRING)
     @Column(name = "oauth_provider", nullable = false)
     private OAuthProvider oAuthProvider;
     private String name;
     private String phone;
 
-    public static User createUser(Long socialId, OAuthProvider oAuthProvider, String name, String phone){
+    public static User createUser(String socialId, OAuthProvider oAuthProvider, String name, String phone){
         User newUser = new User();
         newUser.socialId = socialId;
         newUser.oAuthProvider = oAuthProvider;
