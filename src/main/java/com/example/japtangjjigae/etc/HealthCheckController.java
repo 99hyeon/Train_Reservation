@@ -1,4 +1,4 @@
-package com.example.japtangjjigae;
+package com.example.japtangjjigae.etc;
 
 import java.util.Map;
 import java.util.TreeMap;

@@ -1,10 +1,13 @@
 package com.example.japtangjjigae.user.service;
 
-import com.example.japtangjjigae.user.dto.KakaoDTO;
+import com.example.japtangjjigae.exception.handler.UserDuplicateException;
+import com.example.japtangjjigae.global.response.code.UserResponseCode;
+import com.example.japtangjjigae.redis.SignupTicketStore;
+import com.example.japtangjjigae.redis.SignupTicketStore.SignupTicketValue;
+import com.example.japtangjjigae.user.dto.KakaoSignupRequestDTO;
+import com.example.japtangjjigae.user.dto.KakaoSignupResponseDTO;
 import com.example.japtangjjigae.user.entity.User;
 import com.example.japtangjjigae.user.repository.UserRepository;
-import com.example.japtangjjigae.util.KakaoUtil;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,31 +17,27 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class KakaoLoginService {
 
-    private final KakaoUtil kakaoUtil;
     private final UserRepository userRepository;
+    private final SignupTicketStore signupTicketStore;
 
-    public String getKakaoLoginUrl() {
-        String clientId = kakaoUtil.getClient();
-        String redirect = kakaoUtil.getRedirect();
-        String loginUrl =
-            "https://kauth.kakao.com/oauth/authorize?client_id=" + clientId + "&redirect_uri="
-                + redirect + "&response_type=code";
+    public KakaoSignupResponseDTO signUp(KakaoSignupRequestDTO requestDto) {
+        SignupTicketValue signupTicketValue = signupTicketStore.get(
+            requestDto.getSocialSignupTicket()).orElse(null);
+        signupTicketStore.invalidate(requestDto.getSocialSignupTicket());
 
-        return loginUrl;
-    }
+        User findUser = userRepository.findBySocialIdAndOAuthProvider(signupTicketValue.kakaoId(),
+            signupTicketValue.provider()).orElse(null);
 
-    public User kakaoLogin(String code, HttpServletResponse httpServletResponse) {
-        KakaoDTO.OAuthToken oAuthToken = kakaoUtil.requestToken(code);
-        KakaoDTO.KakaoProfile kakaoProfile = kakaoUtil.requestProfile(oAuthToken);
+        if (findUser != null) {
+            throw new UserDuplicateException(UserResponseCode.USER_DUPLICATE);
+        }
 
-        log.info(kakaoProfile.getId().toString());
+        User user = User.createUser(signupTicketValue.kakaoId(), signupTicketValue.provider(),
+            requestDto.getName(), requestDto.getPhone());
 
-//        String token = jwtUtil.createAccessToken(user.getEmail(), user.getRole().toString());
-//        httpServletResponse.setHeader("Authorization", token);
+        User savedUser = userRepository.save(user);
 
-//        return user;
-
-        return new User();
+        return new KakaoSignupResponseDTO(savedUser.getId());
     }
 
 }
