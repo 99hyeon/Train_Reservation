@@ -37,4 +37,16 @@ public class Seat {
 
         return newSeat;
     }
+
+    public Long getId() {
+        return id;
+    }
+
+    public int getRowNumber() {
+        return rowNumber;
+    }
+
+    public Character getColumnCode() {
+        return columnCode;
+    }
 }

@@ -5,7 +5,7 @@ import com.example.japtangjjigae.global.response.code.UserResponseCode;
 import com.example.japtangjjigae.redis.SignupTicketStore;
 import com.example.japtangjjigae.redis.SignupTicketStore.SignupTicketValue;
 import com.example.japtangjjigae.user.dto.SignupRequestDTO;
-import com.example.japtangjjigae.user.dto.signupResponseDTO;
+import com.example.japtangjjigae.user.dto.SignupResponseDTO;
 import com.example.japtangjjigae.user.entity.User;
 import com.example.japtangjjigae.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +20,7 @@ public class LoginService {
     private final UserRepository userRepository;
     private final SignupTicketStore signupTicketStore;
 
-    public signupResponseDTO signUp(SignupRequestDTO requestDto) {
+    public SignupResponseDTO signUp(SignupRequestDTO requestDto) {
         SignupTicketValue signupTicketValue = signupTicketStore.get(
             requestDto.getSocialSignupTicket()).orElse(null);
         signupTicketStore.invalidate(requestDto.getSocialSignupTicket());
@@ -36,7 +36,7 @@ public class LoginService {
 
         User savedUser = userRepository.save(user);
 
-        return new signupResponseDTO(savedUser.getId(), requestDto.getOAuthProvider());
+        return new SignupResponseDTO(savedUser.getId(), requestDto.getOAuthProvider());
     }
 
 }

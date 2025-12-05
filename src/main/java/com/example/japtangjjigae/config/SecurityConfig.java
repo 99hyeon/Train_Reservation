@@ -44,13 +44,15 @@ public class SecurityConfig {
 
         http
             .authorizeHttpRequests((auth) -> auth
-                    .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+//                    .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+//
+//                    .requestMatchers("/login/oauth2/code/naver",
+//                        "/login/oauth2/code/kakao", "/api/v1/users", "/api/v1/check/signup").permitAll()
+//
+//                    .requestMatchers("/api/v1/train", "/api/v1/seat").authenticated()
 
-                    .requestMatchers("/login/oauth2/code/naver",
-                        "/login/oauth2/code/kakao", "/api/v1/users", "/api/v1/check/signup").permitAll()
-
-                    .anyRequest().authenticated()
-//                    .anyRequest().permitAll()
+//                    .anyRequest().authenticated()
+                    .anyRequest().permitAll()
             );
 
         return http.build();

@@ -3,12 +3,12 @@ package com.example.japtangjjigae.global.init;
 import com.example.japtangjjigae.station.entity.Station;
 import com.example.japtangjjigae.station.repository.StationRepository;
 import com.example.japtangjjigae.train.entity.Carriage;
-import com.example.japtangjjigae.train.entity.Route;
 import com.example.japtangjjigae.train.entity.Seat;
 import com.example.japtangjjigae.train.entity.Train;
 import com.example.japtangjjigae.train.entity.TrainRun;
+import com.example.japtangjjigae.train.entity.TrainStop;
 import com.example.japtangjjigae.train.repository.CarriageRepository;
-import com.example.japtangjjigae.train.repository.RouteRepository;
+import com.example.japtangjjigae.train.repository.TrainStopRepository;
 import com.example.japtangjjigae.train.repository.SeatRepository;
 import com.example.japtangjjigae.train.repository.TrainRepository;
 import com.example.japtangjjigae.train.repository.TrainRunRepository;
@@ -30,7 +30,7 @@ public class TrainDataInitializer implements CommandLineRunner {
     private final SeatRepository seatRepository;
     private final TrainRunRepository trainRunRepository;
     private final StationRepository stationRepository;
-    private final RouteRepository routeRepository;
+    private final TrainStopRepository trainStopRepository;
 
     @Override
     @Transactional
@@ -41,42 +41,35 @@ public class TrainDataInitializer implements CommandLineRunner {
 
         initStations();
         initTrainsAndSeats();
-        initTrainRunsAndRoutes();
+        initTrainRunsAndTrainStop();
     }
 
     private void initStations() {
-        List<Station> stations = List.of(
-            Station.createStation("SEOUL", "서울역"),
-            Station.createStation("SUWON", "수원역"),
-            Station.createStation("DAEJEON", "대전역"),
-            Station.createStation("DONGDAEGU", "동대구역"),
-            Station.createStation("ULSAN", "울산역"),
-            Station.createStation("BUSAN", "부산역")
-        );
+        List<Station> stations = List.of(Station.createStation("SEOUL", "서울역"),
+            Station.createStation("SUWON", "수원역"), Station.createStation("DAEJEON", "대전역"),
+            Station.createStation("DONGDAEGU", "동대구역"), Station.createStation("ULSAN", "울산역"),
+            Station.createStation("BUSAN", "부산역"));
 
         stationRepository.saveAll(stations);
     }
 
     private void initTrainsAndSeats() {
         // 경부선 하행
-        List<Train> trains = List.of(
-            Train.createTrain("GB101"),
-            Train.createTrain("GB103"),
-            Train.createTrain("GB105")
-        );
+        List<Train> trains = List.of(Train.createTrain("GB101"), Train.createTrain("GB103"),
+            Train.createTrain("GB105"));
         trainRepository.saveAll(trains);
 
         List<Carriage> carriages = new ArrayList<>();
         List<Seat> seats = new ArrayList<>();
 
         char[] columns = {'A', 'B', 'C', 'D'};
-        for(Train train : trains){
-            for(int carriageNum = 1; carriageNum <= 6; carriageNum++){
+        for (Train train : trains) {
+            for (int carriageNum = 1; carriageNum <= 6; carriageNum++) {
                 Carriage carriage = Carriage.createCarriage(train, carriageNum);
                 carriages.add(carriage);
 
-                for(int row = 1; row <= 10; row++){
-                    for(char col : columns){
+                for (int row = 1; row <= 10; row++) {
+                    for (char col : columns) {
                         Seat seat = Seat.createSeat(carriage, row, col);
                         seats.add(seat);
                     }
@@ -88,7 +81,7 @@ public class TrainDataInitializer implements CommandLineRunner {
         seatRepository.saveAll(seats);
     }
 
-    private void initTrainRunsAndRoutes() {
+    private void initTrainRunsAndTrainStop() {
         LocalDate runDate = LocalDate.now().plusDays(1);
 
         Train gb101 = trainRepository.findByTrainCode("GB101").orElseThrow();
@@ -108,44 +101,65 @@ public class TrainDataInitializer implements CommandLineRunner {
         Station ulsan = stationRepository.findByCode("ULSAN").orElseThrow();
         Station busan = stationRepository.findByCode("BUSAN").orElseThrow();
 
-        List<Route> routes = new ArrayList<>();
+        List<TrainStop> trainStops = new ArrayList<>();
 
         // 경부선 GB101: 서울 -> 수원 -> 대전 -> 동대구 -> 울산 -> 부산
-        routes.add(Route.createRoute(gbRun1, seoul, suwon,
-            LocalTime.of(9, 0), LocalTime.of(9, 20), 8000));
-        routes.add(Route.createRoute(gbRun1, suwon, daejeon,
-            LocalTime.of(9, 22), LocalTime.of(10, 17), 13000));
-        routes.add(Route.createRoute(gbRun1, daejeon, dongdaegu,
-            LocalTime.of(10, 20), LocalTime.of(11, 10), 20000));
-        routes.add(Route.createRoute(gbRun1, dongdaegu, ulsan,
-            LocalTime.of(11, 13), LocalTime.of(11, 48), 10000));
-        routes.add(Route.createRoute(gbRun1, ulsan, busan,
-            LocalTime.of(11, 50), LocalTime.of(12, 15), 8000));
+        trainStops.add(
+            TrainStop.createTrainStop(gbRun1, seoul, 1, LocalTime.of(8, 40), LocalTime.of(9, 0), 0));
+        trainStops.add(
+            TrainStop.createTrainStop(gbRun1, suwon, 2, LocalTime.of(9, 20), LocalTime.of(9, 23),
+                8000));
+        trainStops.add(
+            TrainStop.createTrainStop(gbRun1, daejeon, 3, LocalTime.of(9, 55), LocalTime.of(9, 58),
+                21000));
+        trainStops.add(
+            TrainStop.createTrainStop(gbRun1, dongdaegu, 4, LocalTime.of(10, 48), LocalTime.of(10, 51),
+                41000));
+        trainStops.add(
+            TrainStop.createTrainStop(gbRun1, ulsan, 5, LocalTime.of(11, 22), LocalTime.of(11, 24),
+                50000));
+        trainStops.add(
+            TrainStop.createTrainStop(gbRun1, busan, 6, LocalTime.of(11, 49), LocalTime.of(12, 10),
+                58000));
 
         // 경부선 GB103: 서울 -> 수원 -> 대전 -> 동대구 -> 울산 -> 부산
-        routes.add(Route.createRoute(gbRun3, seoul, suwon,
-            LocalTime.of(10, 0), LocalTime.of(10, 20), 8000));
-        routes.add(Route.createRoute(gbRun3, suwon, daejeon,
-            LocalTime.of(10, 22), LocalTime.of(11, 17), 13000));
-        routes.add(Route.createRoute(gbRun3, daejeon, dongdaegu,
-            LocalTime.of(11, 20), LocalTime.of(12, 10), 20000));
-        routes.add(Route.createRoute(gbRun3, dongdaegu, ulsan,
-            LocalTime.of(12, 13), LocalTime.of(12, 48), 10000));
-        routes.add(Route.createRoute(gbRun3, ulsan, busan,
-            LocalTime.of(12, 50), LocalTime.of(13, 15), 8000));
+        trainStops.add(
+            TrainStop.createTrainStop(gbRun3, seoul, 1, LocalTime.of(9, 40), LocalTime.of(10, 0), 0));
+        trainStops.add(
+            TrainStop.createTrainStop(gbRun3, suwon, 2, LocalTime.of(10, 20), LocalTime.of(10, 23),
+                8000));
+        trainStops.add(
+            TrainStop.createTrainStop(gbRun3, daejeon, 3, LocalTime.of(10, 55), LocalTime.of(10, 58),
+                21000));
+        trainStops.add(
+            TrainStop.createTrainStop(gbRun3, dongdaegu, 4, LocalTime.of(11, 48), LocalTime.of(11, 51),
+                41000));
+        trainStops.add(
+            TrainStop.createTrainStop(gbRun3, ulsan, 5, LocalTime.of(12, 22), LocalTime.of(12, 24),
+                50000));
+        trainStops.add(
+            TrainStop.createTrainStop(gbRun3, busan, 6, LocalTime.of(12, 49), LocalTime.of(13, 10),
+                58000));
 
         // 경부선 GB105: 서울 -> 수원 -> 대전 -> 동대구 -> 울산 -> 부산
-        routes.add(Route.createRoute(gbRun5, seoul, suwon,
-            LocalTime.of(11, 0), LocalTime.of(11, 20), 8000));
-        routes.add(Route.createRoute(gbRun5, suwon, daejeon,
-            LocalTime.of(11, 22), LocalTime.of(12, 17), 13000));
-        routes.add(Route.createRoute(gbRun5, daejeon, dongdaegu,
-            LocalTime.of(12, 20), LocalTime.of(13, 10), 20000));
-        routes.add(Route.createRoute(gbRun5, dongdaegu, ulsan,
-            LocalTime.of(13, 13), LocalTime.of(13, 48), 10000));
-        routes.add(Route.createRoute(gbRun5, ulsan, busan,
-            LocalTime.of(13, 50), LocalTime.of(14, 15), 8000));
+        trainStops.add(
+            TrainStop.createTrainStop(gbRun5, seoul, 1, LocalTime.of(10, 40), LocalTime.of(11, 0), 0));
+        trainStops.add(
+            TrainStop.createTrainStop(gbRun5, suwon, 2, LocalTime.of(11, 20), LocalTime.of(11, 23),
+                8000));
+        trainStops.add(
+            TrainStop.createTrainStop(gbRun5, daejeon, 3, LocalTime.of(11, 55), LocalTime.of(11, 58),
+                21000));
+        trainStops.add(
+            TrainStop.createTrainStop(gbRun5, dongdaegu, 4, LocalTime.of(12, 48), LocalTime.of(12, 51),
+                41000));
+        trainStops.add(
+            TrainStop.createTrainStop(gbRun5, ulsan, 5, LocalTime.of(13, 22), LocalTime.of(13, 24),
+                50000));
+        trainStops.add(
+            TrainStop.createTrainStop(gbRun5, busan, 6, LocalTime.of(13, 49), LocalTime.of(14, 10),
+                58000));
 
-        routeRepository.saveAll(routes);
+        trainStopRepository.saveAll(trainStops);
     }
 }

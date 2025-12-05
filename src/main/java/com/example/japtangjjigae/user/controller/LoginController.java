@@ -3,7 +3,7 @@ package com.example.japtangjjigae.user.controller;
 import com.example.japtangjjigae.global.response.ApiResponse;
 import com.example.japtangjjigae.global.response.code.UserResponseCode;
 import com.example.japtangjjigae.user.dto.SignupRequestDTO;
-import com.example.japtangjjigae.user.dto.signupResponseDTO;
+import com.example.japtangjjigae.user.dto.SignupResponseDTO;
 import com.example.japtangjjigae.user.service.LoginService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
-@Tag(name = "Kakao login API", description = "카카오 로그인 API")
+@Tag(name = "소셜 login API", description = "소셜 로그인 API")
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1")
@@ -32,7 +32,7 @@ public class LoginController {
         description = "최초로 로그인 할 시 회원가입할 api"
     )
     @PostMapping("/users")
-    public ResponseEntity<ApiResponse<signupResponseDTO>> signUp(@RequestBody
+    public ResponseEntity<ApiResponse<SignupResponseDTO>> signUp(@RequestBody
     SignupRequestDTO requestDto) {
 
         return ResponseEntity.status(HttpStatus.CREATED)

@@ -30,4 +30,7 @@ public class Station {
         return newStation;
     }
 
+    public String getName() {
+        return name;
+    }
 }

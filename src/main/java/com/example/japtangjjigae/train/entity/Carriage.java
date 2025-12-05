@@ -26,12 +26,16 @@ public class Carriage {
     @Column(nullable = false)
     private int carriageNumber;
 
-    public static Carriage createCarriage(Train train, int carriageNumber){
+    public static Carriage createCarriage(Train train, int carriageNumber) {
         Carriage newCarriage = new Carriage();
         newCarriage.train = train;
         newCarriage.carriageNumber = carriageNumber;
 
         return newCarriage;
+    }
+
+    public int getCarriageNumber() {
+        return carriageNumber;
     }
 
 }

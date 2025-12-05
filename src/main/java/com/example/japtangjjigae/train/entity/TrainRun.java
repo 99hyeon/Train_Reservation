@@ -34,4 +34,12 @@ public class TrainRun {
 
         return newTrainRun;
     }
+
+    public Long getId() {
+        return id;
+    }
+
+    public Train getTrain() {
+        return train;
+    }
 }

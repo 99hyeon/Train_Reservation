@@ -26,4 +26,8 @@ public class Train {
         return newTrain;
     }
 
+    public String getTrainCode() {
+        return trainCode;
+    }
+
 }
