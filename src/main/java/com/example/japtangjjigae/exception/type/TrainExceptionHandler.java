@@ -1,5 +1,6 @@
 package com.example.japtangjjigae.exception.type;
 
+import com.example.japtangjjigae.exception.handler.SeatConflictException;
 import com.example.japtangjjigae.exception.handler.SeatNotFoundException;
 import com.example.japtangjjigae.exception.handler.TrainNotFoundException;
 import com.example.japtangjjigae.global.response.ApiResponse;
@@ -22,6 +23,13 @@ public class TrainExceptionHandler {
     @ExceptionHandler(SeatNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleSeatNotFound(){
         ResponseCode rc = TrainResponseCode.MATCH_TRAIN_NOT_FOUND;
+
+        return ResponseEntity.status(rc.getCode()).body(ApiResponse.from(rc));
+    }
+
+    @ExceptionHandler(SeatConflictException.class)
+    public ResponseEntity<ApiResponse<Void>> handleSeatConflict(){
+        ResponseCode rc = TrainResponseCode.EXIST_SEAT;
 
         return ResponseEntity.status(rc.getCode()).body(ApiResponse.from(rc));
     }

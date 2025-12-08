@@ -1,0 +1,14 @@
+package com.example.japtangjjigae.exception.handler;
+
+import com.example.japtangjjigae.global.response.code.ResponseCode;
+
+public class SeatConflictException extends RuntimeException {
+
+    private final ResponseCode responseCode;
+
+    public SeatConflictException(ResponseCode responseCode){
+        super(responseCode.getMessage());
+        this.responseCode = responseCode;
+    }
+
+}
