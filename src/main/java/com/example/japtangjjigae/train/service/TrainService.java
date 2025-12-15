@@ -1,8 +1,11 @@
 package com.example.japtangjjigae.train.service;
 
-import com.example.japtangjjigae.exception.handler.SeatNotFoundException;
-import com.example.japtangjjigae.exception.handler.TrainNotFoundException;
+import com.example.japtangjjigae.exception.SeatNotFoundException;
+import com.example.japtangjjigae.exception.TrainNotFoundException;
 import com.example.japtangjjigae.global.response.code.TrainResponseCode;
+import com.example.japtangjjigae.redis.seathold.SeatHoldStore;
+import com.example.japtangjjigae.redis.seathold.SeatHoldStore.SeatHold;
+import com.example.japtangjjigae.ticket.repository.TicketRepository;
 import com.example.japtangjjigae.train.dto.SeatSearchRequestDTO;
 import com.example.japtangjjigae.train.dto.SeatSearchResponseDTO;
 import com.example.japtangjjigae.train.dto.SeatSearchResponseDTO.CarriageSeatDTO;
@@ -20,7 +23,10 @@ import com.example.japtangjjigae.train.repository.SeatRepository;
 import com.example.japtangjjigae.train.repository.TrainRunRepository;
 import com.example.japtangjjigae.train.repository.TrainStopRepository;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,13 +39,18 @@ public class TrainService {
     private final TrainStopRepository trainStopRepository;
     private final CarriageRepository carriageRepository;
     private final SeatRepository seatRepository;
+    private final TicketRepository ticketRepository;
+    private final SeatHoldStore seatHoldStore;
 
-    //todo: 좌석 매진 내역 확인 필요
     @Transactional(readOnly = true)
     public TrainSearchResponseDTO searchTrain(TrainSearchRequestDTO request) {
+        String originCode = request.getOriginStationCode();
+        String destinationCode = request.getDestinationStationCode();
+
         List<TrainRun> trainRuns = trainRunRepository.findTrainRuns(
-            request.getOriginStationCode(),
-            request.getDestinationStationCode(), request.getRunDate(),
+            originCode,
+            destinationCode,
+            request.getRunDate(),
             request.getDepartureTime());
 
         if (trainRuns.isEmpty()) {
@@ -49,30 +60,54 @@ public class TrainService {
         List<TrainInfoDTO> trains = new ArrayList<>();
 
         for (TrainRun trainRun : trainRuns) {
-            TrainStop departureTrainStop = getTrainStop(trainRun, request.getOriginStationCode());
-            TrainStop arrivalTrainStop = getTrainStop(trainRun,
-                request.getDestinationStationCode());
+            TrainStop departureTrainStop = getTrainStop(trainRun, originCode);
+            TrainStop arrivalTrainStop = getTrainStop(trainRun, destinationCode);
+
+            boolean soldOut = isSoldOut(
+                trainRun,
+                departureTrainStop.getStopOrder(),
+                arrivalTrainStop.getStopOrder()
+            );
 
             int price =
                 arrivalTrainStop.getCumulativeFare() - departureTrainStop.getCumulativeFare();
 
-            trains.add(new TrainInfoDTO(trainRun.getId(), trainRun.getTrain().getTrainCode(),
+            trains.add(new TrainInfoDTO(
+                trainRun.getId(),
+                trainRun.getTrain().getTrainCode(),
                 departureTrainStop.getDepartureAt(),
-                departureTrainStop.getStation().getName(), arrivalTrainStop.getArrivalAt(),
-                arrivalTrainStop.getStation().getName(), price));
+                arrivalTrainStop.getArrivalAt(),
+                price,
+                soldOut
+            ));
         }
 
-        return new TrainSearchResponseDTO(trains);
+        return new TrainSearchResponseDTO(originCode, destinationCode, trains);
+    }
+
+    private boolean isSoldOut(TrainRun trainRun, int departureOrder, int arrivalOrder) {
+        int totalSeats = seatRepository.countByCarriage_Train(trainRun.getTrain());
+        int bookedSeats = ticketRepository.countBookedSeatsInSection(trainRun, departureOrder,
+            arrivalOrder);
+
+        List<SeatHold> holdSeats = seatHoldStore.findOverLappingHolds(trainRun.getId(),
+            departureOrder, arrivalOrder);
+
+        int holdSeatCount = (int) holdSeats.stream()
+            .map(SeatHold::seatId)
+            .distinct()
+            .count();
+
+        return totalSeats <= (bookedSeats + holdSeatCount);
     }
 
     private TrainStop getTrainStop(TrainRun trainRun, String stationCode) {
         return trainStopRepository.findByTrainRunAndStation_Code(
             trainRun, stationCode).orElseThrow(
-            () -> new TrainNotFoundException(TrainResponseCode.MATCH_TRAIN_NOT_FOUND)
+            () -> new TrainNotFoundException(TrainResponseCode.TRAIN_NOT_FOUND)
         );
     }
 
-    //todo: 좌석 예약 유무 확인
     @Transactional(readOnly = true)
     public SeatSearchResponseDTO searchSeat(SeatSearchRequestDTO request) {
         TrainRun trainRun = trainRunRepository.findById(request.getTrainRunId()).orElseThrow(
@@ -86,16 +121,34 @@ public class TrainService {
             throw new SeatNotFoundException(TrainResponseCode.MATCH_SEAT_NOT_FOUND);
         }
 
+        TrainStop departureStop = getTrainStop(trainRun, request.getOriginStationCode());
+        TrainStop arrivalStop = getTrainStop(trainRun, request.getDestinationStationCode());
+
+        int departureOrder = departureStop.getStopOrder();
+        int arrivalOrder = arrivalStop.getStopOrder();
+
+        List<Long> bookedSeatIdList = ticketRepository.findBookedSeatIdsInSection(trainRun,
+            departureOrder, arrivalOrder);
+        Set<Long> bookedSeatIds = new HashSet<>(bookedSeatIdList);
+
+        List<SeatHold> holdSeats = seatHoldStore.findOverLappingHolds(trainRun.getId(),
+            departureOrder, arrivalOrder);
+        Set<Long> holdSeatIds = holdSeats.stream()
+            .map(SeatHold::seatId)
+            .collect(Collectors.toSet());
+
         List<CarriageSeatDTO> carriageSeats = new ArrayList<>();
         for (Carriage carriage : carriages) {
             List<Seat> seats = seatRepository.findByCarriageOrderByRowNumberAscColumnCodeAsc(
                 carriage);
 
-            carriageSeats.add(toCarriageSeatDTO(carriage, seats));
+            carriageSeats.add(toCarriageSeatDTOFrom(carriage, seats, bookedSeatIds, holdSeatIds));
         }
 
         TrainSummary trainSummary = TrainSummary.builder()
             .trainCode(trainRun.getTrain().getTrainCode())
+            .originCode(request.getOriginStationCode())
+            .destinationCode(request.getDestinationStationCode())
             .build();
 
         return SeatSearchResponseDTO.builder()
@@ -104,28 +157,36 @@ public class TrainService {
             .build();
     }
 
-    private CarriageSeatDTO toCarriageSeatDTO(Carriage carriage, List<Seat> seats) {
+    private CarriageSeatDTO toCarriageSeatDTOFrom(Carriage carriage, List<Seat> seats,
+        Set<Long> bookedSeatIds, Set<Long> holdSeatIds) {
         List<SeatDTO> seatDTOS = seats.stream()
-            .map(this::toSeatDTO)
+            .map(seat -> toSeatDTOFrom(seat, bookedSeatIds, holdSeatIds))
             .toList();
+
+        int availableSeatCount = (int) seatDTOS.stream()
+            .filter(SeatDTO::isAvailable)
+            .count();
 
         return CarriageSeatDTO.builder()
             .carriageNo(carriage.getCarriageNumber())
             .totalSeatCount(seatDTOS.size())
-            .availableSeatCount(seatDTOS.size())
+            .availableSeatCount(availableSeatCount)
             .seats(seatDTOS)
             .build();
     }
 
-    private SeatDTO toSeatDTO(Seat seat) {
+    private SeatDTO toSeatDTOFrom(Seat seat, Set<Long> bookedSeatIds, Set<Long> holdSeatIds) {
         String seatCode = String.valueOf(seat.getRowNumber()) + seat.getColumnCode();
+        boolean booked = bookedSeatIds.contains(seat.getId());
+        boolean held = holdSeatIds.contains(seat.getId());
+        boolean available = !(booked || held);
 
         return SeatDTO.builder()
             .seatId(seat.getId())
             .seatCode(seatCode)
             .row(seat.getRowNumber())
             .column(String.valueOf(seat.getColumnCode()))
-            .available(true)
+            .available(available)
             .build();
     }
 

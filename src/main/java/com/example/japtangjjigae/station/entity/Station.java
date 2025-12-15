@@ -33,4 +33,8 @@ public class Station {
     public String getName() {
         return name;
     }
+
+    public String getCode() {
+        return code;
+    }
 }

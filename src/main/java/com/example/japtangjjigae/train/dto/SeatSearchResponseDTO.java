@@ -1,5 +1,6 @@
 package com.example.japtangjjigae.train.dto;
 
+import java.time.LocalTime;
 import java.util.List;
 import lombok.Builder;
 import lombok.Getter;
@@ -16,6 +17,10 @@ public class SeatSearchResponseDTO {
     @Builder
     public static class TrainSummary {
         private String trainCode;
+        private String originCode;
+        private LocalTime departureAt;
+        private String destinationCode;
+        private LocalTime arrivalAt;
     }
 
     @Getter

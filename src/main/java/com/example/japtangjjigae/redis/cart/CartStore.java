@@ -1,4 +1,4 @@
-package com.example.japtangjjigae.redis;
+package com.example.japtangjjigae.redis.cart;
 
 import com.example.japtangjjigae.cart.entity.Cart;
 

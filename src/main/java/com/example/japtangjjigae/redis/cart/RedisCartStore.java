@@ -1,6 +1,7 @@
-package com.example.japtangjjigae.redis;
+package com.example.japtangjjigae.redis.cart;
 
 import com.example.japtangjjigae.cart.entity.Cart;
+import com.example.japtangjjigae.redis.AbstractRedisStore;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Optional;

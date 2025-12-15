@@ -11,9 +11,8 @@ public class TrainInfoDTO {
     private Long trainRunId;
     private String trainCode;
     private LocalTime departureAt;
-    private String departureStation;
     private LocalTime arrivalAt;
-    private String arrivalStation;
     private int price;
+    private boolean soldOut;
 
 }

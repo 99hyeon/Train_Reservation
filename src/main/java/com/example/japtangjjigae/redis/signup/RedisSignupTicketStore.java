@@ -1,5 +1,6 @@
-package com.example.japtangjjigae.redis;
+package com.example.japtangjjigae.redis.signup;
 
+import com.example.japtangjjigae.redis.AbstractRedisStore;
 import com.example.japtangjjigae.user.common.OAuthProvider;
 import java.util.Optional;
 import org.springframework.data.redis.core.StringRedisTemplate;

@@ -2,22 +2,29 @@ package com.example.japtangjjigae.cart.dto;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import java.util.List;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
 public class AddSeatToCartRequestDTO {
 
-    //todo: 배포할 때 토큰에서 가져오는 걸로 변경
+    private List<SeatInfoDTO> seatInfoDTOs;
     @NotNull
-    private Long userId;
+    private Long departureStopId;
     @NotNull
-    private Long trainRunId;
-    @NotNull
-    private Long seatId;
-    @NotNull
-    @Min(0)
-    private int price;
+    private Long arrivalStopId;
+
+    @Getter
+    @Builder
+    public static class SeatInfoDTO {
+        @NotNull
+        private Long seatId;
+        @NotNull
+        @Min(0)
+        private int price;
+    }
 
 }

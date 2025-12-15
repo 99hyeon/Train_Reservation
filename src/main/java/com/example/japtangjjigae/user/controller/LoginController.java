@@ -36,8 +36,8 @@ public class LoginController {
     SignupRequestDTO requestDto) {
 
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.from(UserResponseCode.SUCCESS_SIGNUP,
-                loginService.signUp(requestDto)));
+            .body(
+                ApiResponse.from(UserResponseCode.SUCCESS_SIGNUP, loginService.signUp(requestDto)));
     }
 
     @Operation(

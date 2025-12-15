@@ -1,4 +1,4 @@
-package com.example.japtangjjigae.redis;
+package com.example.japtangjjigae.redis.signup;
 
 import com.example.japtangjjigae.user.common.OAuthProvider;
 import java.util.Optional;

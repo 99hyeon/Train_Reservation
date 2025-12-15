@@ -8,6 +8,9 @@ import lombok.Getter;
 @AllArgsConstructor
 public class TrainSearchResponseDTO {
 
+    private String originStationCode;
+    private String destinationStationCode;
+
     private List<TrainInfoDTO> trains;
 
 }

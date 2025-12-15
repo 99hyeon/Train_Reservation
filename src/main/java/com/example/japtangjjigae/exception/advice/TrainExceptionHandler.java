@@ -1,8 +1,8 @@
-package com.example.japtangjjigae.exception.type;
+package com.example.japtangjjigae.exception.advice;
 
-import com.example.japtangjjigae.exception.handler.SeatConflictException;
-import com.example.japtangjjigae.exception.handler.SeatNotFoundException;
-import com.example.japtangjjigae.exception.handler.TrainNotFoundException;
+import com.example.japtangjjigae.exception.SeatConflictException;
+import com.example.japtangjjigae.exception.SeatNotFoundException;
+import com.example.japtangjjigae.exception.TrainNotFoundException;
 import com.example.japtangjjigae.global.response.ApiResponse;
 import com.example.japtangjjigae.global.response.code.ResponseCode;
 import com.example.japtangjjigae.global.response.code.TrainResponseCode;

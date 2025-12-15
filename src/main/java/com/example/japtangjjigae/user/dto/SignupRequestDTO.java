@@ -22,7 +22,7 @@ public class SignupRequestDTO {
     )
     private String phone;
 
-    @NotBlank
+    @NotBlank(message = "소셜로그인 제공자 필수")
     private OAuthProvider oAuthProvider;
 
 }

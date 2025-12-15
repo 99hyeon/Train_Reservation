@@ -54,6 +54,9 @@ public class TrainStop {
         return newTrainStop;
     }
 
+    public Long getId() { return id; }
+    public TrainRun getTrainRun() { return trainRun; }
+
     public Station getStation() { return station; }
 
     public LocalTime getArrivalAt() {
@@ -66,5 +69,8 @@ public class TrainStop {
 
     public int getCumulativeFare(){
         return cumulativeFare;
+    }
+    public int getStopOrder(){
+        return stopOrder;
     }
 }

@@ -1,12 +1,12 @@
-package com.example.japtangjjigae.exception.handler;
+package com.example.japtangjjigae.exception;
 
 import com.example.japtangjjigae.global.response.code.ResponseCode;
 
-public class TrainNotFoundException extends RuntimeException {
+public class SeatConflictException extends RuntimeException {
 
     private final ResponseCode responseCode;
 
-    public TrainNotFoundException(ResponseCode responseCode){
+    public SeatConflictException(ResponseCode responseCode){
         super(responseCode.getMessage());
         this.responseCode = responseCode;
     }

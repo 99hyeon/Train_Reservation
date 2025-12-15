@@ -1,9 +1,10 @@
 package com.example.japtangjjigae.user.service;
 
-import com.example.japtangjjigae.exception.handler.UserDuplicateException;
+import com.example.japtangjjigae.exception.TicketNotFoundException;
+import com.example.japtangjjigae.exception.UserDuplicateException;
 import com.example.japtangjjigae.global.response.code.UserResponseCode;
-import com.example.japtangjjigae.redis.SignupTicketStore;
-import com.example.japtangjjigae.redis.SignupTicketStore.SignupTicketValue;
+import com.example.japtangjjigae.redis.signup.SignupTicketStore;
+import com.example.japtangjjigae.redis.signup.SignupTicketStore.SignupTicketValue;
 import com.example.japtangjjigae.user.dto.SignupRequestDTO;
 import com.example.japtangjjigae.user.dto.SignupResponseDTO;
 import com.example.japtangjjigae.user.entity.User;
@@ -22,7 +23,9 @@ public class LoginService {
 
     public SignupResponseDTO signUp(SignupRequestDTO requestDto) {
         SignupTicketValue signupTicketValue = signupTicketStore.get(
-            requestDto.getSocialSignupTicket()).orElse(null);
+            requestDto.getSocialSignupTicket()).orElseThrow(
+            () -> new TicketNotFoundException(UserResponseCode.TICKET_NOT_FOUND)
+        );
         signupTicketStore.invalidate(requestDto.getSocialSignupTicket());
 
         User findUser = userRepository.findByNameAndPhone(requestDto.getName(), requestDto.getPhone()).orElse(null);

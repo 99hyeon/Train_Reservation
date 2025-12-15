@@ -1,9 +1,8 @@
 package com.example.japtangjjigae.oauth2;
 
 import com.example.japtangjjigae.global.response.code.AuthResponseCode;
-import com.example.japtangjjigae.redis.SignupTicketStore;
+import com.example.japtangjjigae.redis.signup.SignupTicketStore;
 import com.example.japtangjjigae.user.common.OAuthProvider;
-import com.example.japtangjjigae.user.dto.UserDTO;
 import com.example.japtangjjigae.user.entity.User;
 import com.example.japtangjjigae.user.repository.UserRepository;
 import java.util.UUID;
@@ -36,18 +35,15 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         String principalName = null;
         String ticket = null;
-        UserDTO userDto;
 
         if (user == null) {
             principalName = providerInfo.provider() + ":" + providerInfo.providerId();
             ticket = createSignupTicket(providerInfo);
-            userDto = new UserDTO(null, providerInfo.provider());
         } else {
-            principalName = String.valueOf(user.getId());
-            userDto = new UserDTO(user.getId(), providerInfo.provider());
+            principalName = providerInfo.provider() + ":" + user.getId();
         }
 
-        return new CustomOAuth2User(oAuth2User.getAttributes(), principalName, ticket, userDto);
+        return new CustomOAuth2User(oAuth2User.getAttributes(), principalName, ticket);
     }
 
     private String createSignupTicket(ProviderInfo info) {
@@ -77,14 +73,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         }
 
         return new ProviderInfo(provider, response.getProviderId());
-    }
-
-    private Long parseProviderId(String providerId) {
-        try {
-            return Long.parseLong(providerId);
-        } catch (NumberFormatException e) {
-            throw oauth2Exception(AuthResponseCode.OAUTH2_INVALID_PROVIDER_ID);
-        }
     }
 
     private OAuth2AuthenticationException oauth2Exception(AuthResponseCode code) {
