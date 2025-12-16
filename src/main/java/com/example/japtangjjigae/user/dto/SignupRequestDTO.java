@@ -2,6 +2,7 @@ package com.example.japtangjjigae.user.dto;
 
 import com.example.japtangjjigae.user.common.OAuthProvider;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 
@@ -9,7 +10,6 @@ import lombok.Getter;
 @Getter
 public class SignupRequestDTO {
 
-    @NotBlank(message = "소셜회원가입 위한 티켓값 필수")
     private String socialSignupTicket;
 
     @NotBlank(message = "이름 필수")
@@ -22,7 +22,7 @@ public class SignupRequestDTO {
     )
     private String phone;
 
-    @NotBlank(message = "소셜로그인 제공자 필수")
-    private OAuthProvider oAuthProvider;
+    @NotNull(message = "소셜로그인 제공자 필수")
+    private OAuthProvider oauthProvider;
 
 }

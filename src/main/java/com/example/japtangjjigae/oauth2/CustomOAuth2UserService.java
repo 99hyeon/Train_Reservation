@@ -30,7 +30,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         ProviderInfo providerInfo = resolveProviderInfo(userRequest, oAuth2User);
 
-        User user = userRepository.findBySocialIdAndOAuthProvider(providerInfo.providerId(),
+        User user = userRepository.findBySocialIdAndOauthProvider(providerInfo.providerId(),
             providerInfo.provider()).orElse(null);
 
         String principalName = null;

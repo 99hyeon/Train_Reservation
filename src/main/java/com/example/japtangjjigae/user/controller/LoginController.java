@@ -7,6 +7,7 @@ import com.example.japtangjjigae.user.dto.SignupResponseDTO;
 import com.example.japtangjjigae.user.service.LoginService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -32,7 +33,7 @@ public class LoginController {
         description = "최초로 로그인 할 시 회원가입할 api"
     )
     @PostMapping("/users")
-    public ResponseEntity<ApiResponse<SignupResponseDTO>> signUp(@RequestBody
+    public ResponseEntity<ApiResponse<SignupResponseDTO>> signUp(@Valid @RequestBody
     SignupRequestDTO requestDto) {
 
         return ResponseEntity.status(HttpStatus.CREATED)

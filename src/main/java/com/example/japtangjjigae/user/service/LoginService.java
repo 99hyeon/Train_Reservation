@@ -26,11 +26,14 @@ public class LoginService {
             requestDto.getSocialSignupTicket()).orElseThrow(
             () -> new TicketNotFoundException(UserResponseCode.TICKET_NOT_FOUND)
         );
-        signupTicketStore.invalidate(requestDto.getSocialSignupTicket());
 
         User findUser = userRepository.findByNameAndPhone(requestDto.getName(), requestDto.getPhone()).orElse(null);
 
-        if (findUser != null && requestDto.getOAuthProvider() != signupTicketValue.provider()) {
+        if (findUser != null) {
+            if(findUser.getOauthProvider() == signupTicketValue.provider()){
+                throw new TicketNotFoundException(UserResponseCode.USER_DUPLICATE);
+            }
+
             throw new UserDuplicateException(UserResponseCode.ALREADY_LIKED_SOCIAL_ACCOUNT);
         }
 
@@ -38,8 +41,9 @@ public class LoginService {
             requestDto.getName(), requestDto.getPhone());
 
         User savedUser = userRepository.save(user);
+        signupTicketStore.invalidate(requestDto.getSocialSignupTicket());
 
-        return new SignupResponseDTO(savedUser.getId(), requestDto.getOAuthProvider());
+        return new SignupResponseDTO(savedUser.getId(), requestDto.getOauthProvider());
     }
 
 }

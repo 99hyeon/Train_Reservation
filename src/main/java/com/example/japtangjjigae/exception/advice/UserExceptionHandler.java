@@ -21,15 +21,15 @@ public class UserExceptionHandler {
     }
 
     @ExceptionHandler(UserDuplicateException.class)
-    public ResponseEntity<ApiResponse<Void>> handleUserDuplicate(){
-        ResponseCode rc = UserResponseCode.USER_DUPLICATE;
+    public ResponseEntity<ApiResponse<Void>> handleUserDuplicate(UserDuplicateException e){
+        ResponseCode rc = e.getResponseCode();
 
         return ResponseEntity.status(rc.getCode()).body(ApiResponse.from(rc));
     }
 
     @ExceptionHandler(TicketNotFoundException.class)
-    public ResponseEntity<ApiResponse<Void>> handleTicketNotFound(){
-        ResponseCode rc = UserResponseCode.TICKET_NOT_FOUND;
+    public ResponseEntity<ApiResponse<Void>> handleTicketNotFound(TicketNotFoundException e){
+        ResponseCode rc = e.getResponseCode();
 
         return ResponseEntity.status(rc.getCode()).body(ApiResponse.from(rc));
     }
