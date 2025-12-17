@@ -14,8 +14,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class TrainExceptionHandler {
 
     @ExceptionHandler(TrainNotFoundException.class)
-    public ResponseEntity<ApiResponse<Void>> handleTrainNotFound(){
-        ResponseCode rc = TrainResponseCode.MATCH_TRAIN_NOT_FOUND;
+    public ResponseEntity<ApiResponse<Void>> handleTrainNotFound(TrainNotFoundException e){
+        ResponseCode rc = e.getResponseCode();
 
         return ResponseEntity.status(rc.getCode()).body(ApiResponse.from(rc));
     }

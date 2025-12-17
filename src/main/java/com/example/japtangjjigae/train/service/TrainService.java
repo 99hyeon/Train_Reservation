@@ -28,6 +28,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,15 +46,17 @@ public class TrainService {
     private final SeatHoldStore seatHoldStore;
 
     @Transactional(readOnly = true)
-    public TrainSearchResponseDTO searchTrain(TrainSearchRequestDTO request) {
+    public TrainSearchResponseDTO searchTrain(TrainSearchRequestDTO request, int page) {
         String originCode = request.getOriginStationCode();
         String destinationCode = request.getDestinationStationCode();
 
-        List<TrainRun> trainRuns = trainRunRepository.findTrainRuns(
+        Pageable pageable = PageRequest.of(page, 10);
+        Page<TrainRun> pageTrainRuns = trainRunRepository.findTrainRuns(
             originCode,
             destinationCode,
             request.getRunDate(),
-            request.getDepartureTime());
+            request.getDepartureTime(), pageable);
+        List<TrainRun> trainRuns = pageTrainRuns.getContent();
 
         if (trainRuns.isEmpty()) {
             throw new TrainNotFoundException(TrainResponseCode.MATCH_TRAIN_NOT_FOUND);

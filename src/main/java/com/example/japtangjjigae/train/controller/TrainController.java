@@ -40,7 +40,8 @@ public class TrainController {
         @RequestParam String destinationStationCode,
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate runDate,
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime departureTime,
-        @RequestParam @Min(1) int member
+        @RequestParam @Min(1) int member,
+        @RequestParam(defaultValue = "0") int page
 
     ) {
         TrainSearchRequestDTO request = new TrainSearchRequestDTO(
@@ -52,7 +53,7 @@ public class TrainController {
         );
 
         return ResponseEntity.ok(
-            ApiResponse.from(TrainResponseCode.TRAIN_FOUND, trainService.searchTrain(request)));
+            ApiResponse.from(TrainResponseCode.TRAIN_FOUND, trainService.searchTrain(request, page)));
     }
 
     @Operation(
