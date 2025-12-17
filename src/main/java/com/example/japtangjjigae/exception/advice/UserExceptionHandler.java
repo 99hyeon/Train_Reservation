@@ -1,7 +1,8 @@
-package com.example.japtangjjigae.exception.type;
+package com.example.japtangjjigae.exception.advice;
 
-import com.example.japtangjjigae.exception.handler.UserDuplicateException;
-import com.example.japtangjjigae.exception.handler.UserNotFoundException;
+import com.example.japtangjjigae.exception.TicketNotFoundException;
+import com.example.japtangjjigae.exception.UserDuplicateException;
+import com.example.japtangjjigae.exception.UserNotFoundException;
 import com.example.japtangjjigae.global.response.ApiResponse;
 import com.example.japtangjjigae.global.response.code.ResponseCode;
 import com.example.japtangjjigae.global.response.code.UserResponseCode;
@@ -20,8 +21,15 @@ public class UserExceptionHandler {
     }
 
     @ExceptionHandler(UserDuplicateException.class)
-    public ResponseEntity<ApiResponse<Void>> handleUserDuplicate(){
-        ResponseCode rc = UserResponseCode.USER_DUPLICATE;
+    public ResponseEntity<ApiResponse<Void>> handleUserDuplicate(UserDuplicateException e){
+        ResponseCode rc = e.getResponseCode();
+
+        return ResponseEntity.status(rc.getCode()).body(ApiResponse.from(rc));
+    }
+
+    @ExceptionHandler(TicketNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTicketNotFound(TicketNotFoundException e){
+        ResponseCode rc = e.getResponseCode();
 
         return ResponseEntity.status(rc.getCode()).body(ApiResponse.from(rc));
     }

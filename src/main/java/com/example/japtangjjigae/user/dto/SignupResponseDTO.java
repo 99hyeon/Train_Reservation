@@ -6,7 +6,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class signupResponseDTO {
+public class SignupResponseDTO {
 
     private Long userId;
     private OAuthProvider oAuthProvider;

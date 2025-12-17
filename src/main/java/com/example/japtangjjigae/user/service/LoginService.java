@@ -1,11 +1,12 @@
 package com.example.japtangjjigae.user.service;
 
-import com.example.japtangjjigae.exception.handler.UserDuplicateException;
+import com.example.japtangjjigae.exception.TicketNotFoundException;
+import com.example.japtangjjigae.exception.UserDuplicateException;
 import com.example.japtangjjigae.global.response.code.UserResponseCode;
-import com.example.japtangjjigae.redis.SignupTicketStore;
-import com.example.japtangjjigae.redis.SignupTicketStore.SignupTicketValue;
+import com.example.japtangjjigae.redis.signup.SignupTicketStore;
+import com.example.japtangjjigae.redis.signup.SignupTicketStore.SignupTicketValue;
 import com.example.japtangjjigae.user.dto.SignupRequestDTO;
-import com.example.japtangjjigae.user.dto.signupResponseDTO;
+import com.example.japtangjjigae.user.dto.SignupResponseDTO;
 import com.example.japtangjjigae.user.entity.User;
 import com.example.japtangjjigae.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,14 +21,19 @@ public class LoginService {
     private final UserRepository userRepository;
     private final SignupTicketStore signupTicketStore;
 
-    public signupResponseDTO signUp(SignupRequestDTO requestDto) {
+    public SignupResponseDTO signUp(SignupRequestDTO requestDto) {
         SignupTicketValue signupTicketValue = signupTicketStore.get(
-            requestDto.getSocialSignupTicket()).orElse(null);
-        signupTicketStore.invalidate(requestDto.getSocialSignupTicket());
+            requestDto.getSocialSignupTicket()).orElseThrow(
+            () -> new TicketNotFoundException(UserResponseCode.TICKET_NOT_FOUND)
+        );
 
         User findUser = userRepository.findByNameAndPhone(requestDto.getName(), requestDto.getPhone()).orElse(null);
 
-        if (findUser != null && requestDto.getOAuthProvider() != signupTicketValue.provider()) {
+        if (findUser != null) {
+            if(findUser.getOauthProvider() == signupTicketValue.provider()){
+                throw new TicketNotFoundException(UserResponseCode.USER_DUPLICATE);
+            }
+
             throw new UserDuplicateException(UserResponseCode.ALREADY_LIKED_SOCIAL_ACCOUNT);
         }
 
@@ -35,8 +41,9 @@ public class LoginService {
             requestDto.getName(), requestDto.getPhone());
 
         User savedUser = userRepository.save(user);
+        signupTicketStore.invalidate(requestDto.getSocialSignupTicket());
 
-        return new signupResponseDTO(savedUser.getId(), requestDto.getOAuthProvider());
+        return new SignupResponseDTO(savedUser.getId(), requestDto.getOauthProvider());
     }
 
 }

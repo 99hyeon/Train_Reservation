@@ -9,10 +9,12 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(name = "users")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseEntity {
 
@@ -24,14 +26,16 @@ public class User extends BaseEntity {
     private String socialId;
     @Enumerated(EnumType.STRING)
     @Column(name = "oauth_provider", nullable = false)
-    private OAuthProvider oAuthProvider;
+    private OAuthProvider oauthProvider;
     private String name;
+
+    @Column(unique = true)
     private String phone;
 
     public static User createUser(String socialId, OAuthProvider oAuthProvider, String name, String phone){
         User newUser = new User();
         newUser.socialId = socialId;
-        newUser.oAuthProvider = oAuthProvider;
+        newUser.oauthProvider = oAuthProvider;
         newUser.name = name;
         newUser.phone = phone;
 
@@ -44,5 +48,9 @@ public class User extends BaseEntity {
 
     public String getName(){
         return name;
+    }
+
+    public OAuthProvider getOauthProvider(){
+        return oauthProvider;
     }
 }
