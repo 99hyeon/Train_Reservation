@@ -21,15 +21,15 @@ public class TrainExceptionHandler {
     }
 
     @ExceptionHandler(SeatNotFoundException.class)
-    public ResponseEntity<ApiResponse<Void>> handleSeatNotFound(){
-        ResponseCode rc = TrainResponseCode.MATCH_TRAIN_NOT_FOUND;
+    public ResponseEntity<ApiResponse<Void>> handleSeatNotFound(SeatNotFoundException e){
+        ResponseCode rc = e.getResponseCode();
 
         return ResponseEntity.status(rc.getCode()).body(ApiResponse.from(rc));
     }
 
     @ExceptionHandler(SeatConflictException.class)
-    public ResponseEntity<ApiResponse<Void>> handleSeatConflict(){
-        ResponseCode rc = TrainResponseCode.EXIST_SEAT;
+    public ResponseEntity<ApiResponse<Void>> handleSeatConflict(SeatConflictException e){
+        ResponseCode rc = e.getResponseCode();
 
         return ResponseEntity.status(rc.getCode()).body(ApiResponse.from(rc));
     }

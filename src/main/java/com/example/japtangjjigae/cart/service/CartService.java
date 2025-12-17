@@ -9,6 +9,7 @@ import com.example.japtangjjigae.cart.entity.CartItem;
 import com.example.japtangjjigae.exception.SeatConflictException;
 import com.example.japtangjjigae.exception.TrainNotFoundException;
 import com.example.japtangjjigae.global.response.code.TrainResponseCode;
+import com.example.japtangjjigae.global.response.code.UserResponseCode;
 import com.example.japtangjjigae.redis.cart.CartStore;
 import com.example.japtangjjigae.redis.seathold.SeatHoldStore;
 import com.example.japtangjjigae.train.entity.TrainStop;
@@ -94,10 +95,12 @@ public class CartService {
         Cart cart = cartStore.getOrCreate(userId);
 
         List<SeatDTO> seatList = new ArrayList<>();
-        if (!cart.isSeatsEmpty()) {
-            for (CartItem seat : cart.getSeats()) {
-                seatList.add(seatDTOfrom(seat));
-            }
+        if (cart.isSeatsEmpty()) {
+            throw new TrainNotFoundException(UserResponseCode.CART_SEAT_NOT_FOUND);
+        }
+
+        for (CartItem seat : cart.getSeats()) {
+            seatList.add(seatDTOfrom(seat));
         }
 
         return GetCartResponseDTO.builder()
