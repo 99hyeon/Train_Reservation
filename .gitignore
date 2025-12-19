@@ -52,3 +52,7 @@ bin/
 
 ### VS Code ###
 .vscode/
+
+### k6 ###
+./scripts/
+src/main/java/com/example/japtangjjigae/global/init/TrainDataInitializerLoadTest.java

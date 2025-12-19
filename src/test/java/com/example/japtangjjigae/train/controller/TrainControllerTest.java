@@ -93,9 +93,8 @@ class TrainControllerTest {
                 .param("member", "1")
                 .param("page", "0")
             )
-            .andExpect(status().is(TrainResponseCode.MATCH_TRAIN_NOT_FOUND.getCode()))
-            .andExpect(
-                jsonPath("$.message").value(TrainResponseCode.MATCH_TRAIN_NOT_FOUND.getMessage()));
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.trains").isEmpty());
     }
 
     @Test

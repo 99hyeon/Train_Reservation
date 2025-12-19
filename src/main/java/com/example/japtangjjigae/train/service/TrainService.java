@@ -58,10 +58,6 @@ public class TrainService {
             request.getDepartureTime(), pageable);
         List<TrainRun> trainRuns = pageTrainRuns.getContent();
 
-        if (trainRuns.isEmpty()) {
-            throw new TrainNotFoundException(TrainResponseCode.MATCH_TRAIN_NOT_FOUND);
-        }
-
         List<TrainInfoDTO> trains = new ArrayList<>();
 
         for (TrainRun trainRun : trainRuns) {
