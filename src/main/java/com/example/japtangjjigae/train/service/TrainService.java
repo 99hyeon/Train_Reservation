@@ -127,7 +127,7 @@ public class TrainService {
             departureOrder, arrivalOrder);
         Set<Long> bookedSeatIds = new HashSet<>(bookedSeatIdList);
 
-        List<SeatHold> holdSeats = seatHoldStore.findOverLappingHolds2(trainRun.getId(),
+        List<SeatHold> holdSeats = seatHoldStore.findOverLappingHolds(trainRun.getId(),
             departureOrder, arrivalOrder);
         Set<Long> holdSeatIds = holdSeats.stream()
             .map(SeatHold::seatId)

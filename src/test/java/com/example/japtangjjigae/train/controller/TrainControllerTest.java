@@ -4,14 +4,12 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.japtangjjigae.global.response.code.TrainResponseCode;
 import com.example.japtangjjigae.order.Order;
 import com.example.japtangjjigae.order.OrderRepository;
-import com.example.japtangjjigae.redis.cart.CartStore;
 import com.example.japtangjjigae.redis.seathold.SeatHoldStore;
 import com.example.japtangjjigae.redis.seathold.SeatHoldStore.SeatHold;
 import com.example.japtangjjigae.ticket.PayStatus;
@@ -302,7 +300,7 @@ class TrainControllerTest {
             .map(seat -> new SeatHold(seat.getId(), depOrder, arrOrder))
             .toList();
 
-        given(seatHoldStore.findOverLappingHolds2(eq(trainRun.getId()), eq(depOrder),
+        given(seatHoldStore.findOverLappingHolds(eq(trainRun.getId()), eq(depOrder),
             eq(arrOrder))).willReturn(holds);
 
         //when

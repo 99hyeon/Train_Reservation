@@ -7,12 +7,6 @@ public interface SeatHoldStore {
     void holdSeat(Long trainRunId, Long seatId, int depOrder, int arrOrder, long ttlSeconds);
 
     List<SeatHold> findOverLappingHolds(
-      Long trainRunId,
-      int requestDepartureOrder,
-      int requestArrivalOrder
-    );
-
-    List<SeatHold> findOverLappingHolds2(
         Long trainRunId,
         int requestDepartureOrder,
         int requestArrivalOrder
