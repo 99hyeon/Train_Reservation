@@ -34,6 +34,9 @@ public class Carriage {
         return newCarriage;
     }
 
+    public Long getId() {
+        return id;
+    }
     public int getCarriageNumber() {
         return carriageNumber;
     }

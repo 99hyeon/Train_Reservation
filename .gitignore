@@ -54,5 +54,8 @@ bin/
 .vscode/
 
 ### k6 ###
-./scripts/
+scripts/
 src/main/java/com/example/japtangjjigae/global/init/TrainDataInitializerLoadTest.java
+/src/main/java/com/example/japtangjjigae/global/init/SeatHoldPreSeeder.java
+/summary-seats.json
+/summary-trains.json

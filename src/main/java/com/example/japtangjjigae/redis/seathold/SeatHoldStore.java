@@ -12,6 +12,12 @@ public interface SeatHoldStore {
       int requestArrivalOrder
     );
 
+    List<SeatHold> findOverLappingHolds2(
+        Long trainRunId,
+        int requestDepartureOrder,
+        int requestArrivalOrder
+    );
+
     void releaseSeat(Long trainRunId, Long seatId);
 
     record SeatHold(Long seatId, int departureOrder, int arrivalOrder) {}

@@ -23,8 +23,10 @@ import com.example.japtangjjigae.train.repository.SeatRepository;
 import com.example.japtangjjigae.train.repository.TrainRunRepository;
 import com.example.japtangjjigae.train.repository.TrainStopRepository;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -115,13 +117,6 @@ public class TrainService {
             () -> new TrainNotFoundException(TrainResponseCode.MATCH_TRAIN_NOT_FOUND)
         );
 
-        List<Carriage> carriages = carriageRepository.findByTrainOrderByCarriageNumberAsc(
-            trainRun.getTrain());
-
-        if (carriages.isEmpty()) {
-            throw new SeatNotFoundException(TrainResponseCode.MATCH_SEAT_NOT_FOUND);
-        }
-
         TrainStop departureStop = getTrainStop(trainRun, request.getOriginStationCode());
         TrainStop arrivalStop = getTrainStop(trainRun, request.getDestinationStationCode());
 
@@ -132,17 +127,27 @@ public class TrainService {
             departureOrder, arrivalOrder);
         Set<Long> bookedSeatIds = new HashSet<>(bookedSeatIdList);
 
-        List<SeatHold> holdSeats = seatHoldStore.findOverLappingHolds(trainRun.getId(),
+        List<SeatHold> holdSeats = seatHoldStore.findOverLappingHolds2(trainRun.getId(),
             departureOrder, arrivalOrder);
         Set<Long> holdSeatIds = holdSeats.stream()
             .map(SeatHold::seatId)
             .collect(Collectors.toSet());
 
+        List<Carriage> carriages = carriageRepository.findByTrainOrderByCarriageNumberAsc(
+            trainRun.getTrain());
+
+        if (carriages.isEmpty()) {
+            throw new SeatNotFoundException(TrainResponseCode.MATCH_SEAT_NOT_FOUND);
+        }
+
+        List<Seat> allSeats = seatRepository.findByCarriageInOrderByCarriage_IdAscRowNumberAscColumnCodeAsc(
+            carriages);
+        Map<Long, List<Seat>> seatsByCarriageId = allSeats.stream()
+            .collect(Collectors.groupingBy(seat -> seat.getCarriage().getId(), HashMap::new,
+                Collectors.toList()));
         List<CarriageSeatDTO> carriageSeats = new ArrayList<>();
         for (Carriage carriage : carriages) {
-            List<Seat> seats = seatRepository.findByCarriageOrderByRowNumberAscColumnCodeAsc(
-                carriage);
-
+            List<Seat> seats = seatsByCarriageId.getOrDefault(carriage.getId(), List.of());
             carriageSeats.add(toCarriageSeatDTOFrom(carriage, seats, bookedSeatIds, holdSeatIds));
         }
 

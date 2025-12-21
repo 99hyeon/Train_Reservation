@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface SeatRepository extends JpaRepository<Seat, Long> {
     List<Seat> findByCarriageOrderByRowNumberAscColumnCodeAsc(Carriage carriage);
+    List<Seat> findByCarriageInOrderByCarriage_IdAscRowNumberAscColumnCodeAsc(List<Carriage> carriages);
+
     int countByCarriage_Train(Train train);
     List<Seat> findByCarriage_Train(Train train);
 }

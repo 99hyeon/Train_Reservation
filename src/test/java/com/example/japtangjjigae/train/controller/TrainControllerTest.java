@@ -302,7 +302,7 @@ class TrainControllerTest {
             .map(seat -> new SeatHold(seat.getId(), depOrder, arrOrder))
             .toList();
 
-        given(seatHoldStore.findOverLappingHolds(eq(trainRun.getId()), eq(depOrder),
+        given(seatHoldStore.findOverLappingHolds2(eq(trainRun.getId()), eq(depOrder),
             eq(arrOrder))).willReturn(holds);
 
         //when

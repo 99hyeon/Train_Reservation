@@ -66,6 +66,49 @@ public class RedisSeatHoldStore extends AbstractRedisStore implements SeatHoldSt
     }
 
     @Override
+    public List<SeatHold> findOverLappingHolds2(Long trainRunId, int requestDepartureOrder,
+        int requestArrivalOrder) {
+        String indexKey = INDEX_PREFIX + trainRunId;
+        Set<String> seatIdStrs = getSetMembers(indexKey);
+        if (seatIdStrs == null || seatIdStrs.isEmpty()) return List.of();
+
+        List<String> seatKeys = seatIdStrs.stream()
+            .map(seatIdStr -> KEY_PREFIX + trainRunId + ":" + seatIdStr)
+            .toList();
+
+        List<String> values = stringRedisTemplate.opsForValue().multiGet(seatKeys);
+
+        List<SeatHold> holds = new ArrayList<>();
+        List<String> expiredSeatIdsToRemove = new ArrayList<>();
+
+        int i = 0;
+        for (String seatIdStr : seatIdStrs) {
+            String v = (values != null ? values.get(i) : null);
+            i++;
+
+            if (v == null) {
+                expiredSeatIdsToRemove.add(seatIdStr);
+                continue;
+            }
+
+            String[] parts = v.split(":");
+            int depOrder = Integer.parseInt(parts[0]);
+            int arrOrder = Integer.parseInt(parts[1]);
+
+            if (depOrder < requestArrivalOrder && requestDepartureOrder < arrOrder) {
+                holds.add(new SeatHold(Long.valueOf(seatIdStr), depOrder, arrOrder));
+            }
+        }
+
+        if (!expiredSeatIdsToRemove.isEmpty()) {
+            // 인덱스 청소 (성능 위해 한 번에)
+            stringRedisTemplate.opsForSet().remove(indexKey, expiredSeatIdsToRemove.toArray());
+        }
+
+        return holds;
+    }
+
+    @Override
     public void releaseSeat(Long trainRunId, Long seatId) {
         String seatKey = KEY_PREFIX + trainRunId + ":" + seatId;
         String indexKey = INDEX_PREFIX + trainRunId;
