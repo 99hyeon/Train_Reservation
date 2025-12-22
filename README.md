@@ -13,11 +13,11 @@
 | Cache / In-Memory | Redis             |
 | Auth      | OAuth2(Kakao / Naver), JWT (Refresh)                    |
 | Build Tool       | Gradle                                            |
-<!-- | Infra     | AWS EC2(Docker container: Spring Boot, MySQL), Nginx, AWS S3, CloudFront, Route53     |
-| CI/CD     | GitHub Actions, Docker, Discord webhooks                 | -->
 | Test | Junit5, Mockito, MockMvc             |
 | Load Test | k6            |
 | Version Control  | Git / GitHub                                      |
+<!-- | Infra     | AWS EC2(Docker container: Spring Boot, MySQL), Nginx, AWS S3, CloudFront, Route53     |
+| CI/CD     | GitHub Actions, Docker, Discord webhooks                 | -->
 
 <br>
 
