@@ -37,20 +37,36 @@ public class CartService {
     public void addSeat(AddSeatToCartRequestDTO request) {
         Long userId = tokenUtil.currentUserId();
         Cart cart = cartStore.getOrCreate(userId);
-        TrainStop departureStop = trainStopRepository.findById(request.getDepartureStopId())
-            .orElseThrow(
-                () -> new TrainNotFoundException(TrainResponseCode.MATCH_TRAIN_NOT_FOUND)
-            );
 
-        TrainStop arrivalStop = trainStopRepository.findById(request.getArrivalStopId())
-            .orElseThrow(
-                () -> new TrainNotFoundException(TrainResponseCode.MATCH_TRAIN_NOT_FOUND)
-            );
+        TrainStop departureStop = getTrainStop(request.getDepartureStopId());
+        TrainStop arrivalStop = getTrainStop(request.getArrivalStopId());
 
-        validateSeatConflicts(cart, request);
+        validateSeatConflicts(cart, request.getSeatInfoDTOs());
 
         for (SeatInfoDTO seatInfo : request.getSeatInfoDTOs()) {
             holdSeatInCart(cart, departureStop, arrivalStop, seatInfo);
+        }
+    }
+
+    private TrainStop getTrainStop(Long request) {
+        return trainStopRepository.findById(request)
+            .orElseThrow(
+                () -> new TrainNotFoundException(TrainResponseCode.MATCH_TRAIN_NOT_FOUND)
+            );
+    }
+
+    private static void validateSeatConflicts(Cart cart, List<SeatInfoDTO> seatInfoDTOS) {
+        for (SeatInfoDTO seatInfo : seatInfoDTOS) {
+            if (cart.isContainsSeat(seatInfo.getSeatId())) {
+                throw new SeatConflictException(TrainResponseCode.EXIST_SEAT);
+            }
+        }
+
+        Set<Long> seatIds = new HashSet<>();
+        for (SeatInfoDTO seatInfo : seatInfoDTOS) {
+            if (!seatIds.add(seatInfo.getSeatId())) {
+                throw new SeatConflictException(TrainResponseCode.EXIST_SEAT);
+            }
         }
     }
 
@@ -77,21 +93,6 @@ public class CartService {
             arrivalStop.getStopOrder(),
             CART_TTL_SECONDS
         );
-    }
-
-    private static void validateSeatConflicts(Cart cart, AddSeatToCartRequestDTO request) {
-        for (SeatInfoDTO seatInfo : request.getSeatInfoDTOs()) {
-            if (cart.isContainsSeat(seatInfo.getSeatId())) {
-                throw new SeatConflictException(TrainResponseCode.EXIST_SEAT);
-            }
-        }
-
-        Set<Long> seatIds = new HashSet<>();
-        for (SeatInfoDTO seatInfo : request.getSeatInfoDTOs()) {
-            if (!seatIds.add(seatInfo.getSeatId())) {
-                throw new SeatConflictException(TrainResponseCode.EXIST_SEAT);
-            }
-        }
     }
 
     public GetCartResponseDTO getSeat() {

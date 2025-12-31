@@ -49,4 +49,8 @@ public class Seat {
     public Character getColumnCode() {
         return columnCode;
     }
+
+    public Carriage getCarriage(){
+        return carriage;
+    }
 }

@@ -36,30 +36,41 @@ public class RedisSeatHoldStore extends AbstractRedisStore implements SeatHoldSt
     @Override
     public List<SeatHold> findOverLappingHolds(Long trainRunId, int requestDepartureOrder,
         int requestArrivalOrder) {
-
         String indexKey = INDEX_PREFIX + trainRunId;
-        Set<String> seatIds = getSetMembers(indexKey);
+        Set<String> seatIdStrs = getSetMembers(indexKey);
+        if (seatIdStrs == null || seatIdStrs.isEmpty()) return List.of();
+
+        List<String> seatKeys = seatIdStrs.stream()
+            .map(seatIdStr -> KEY_PREFIX + trainRunId + ":" + seatIdStr)
+            .toList();
+
+        List<String> values = stringRedisTemplate.opsForValue().multiGet(seatKeys);
+
         List<SeatHold> holds = new ArrayList<>();
+        List<String> expiredSeatIdsToRemove = new ArrayList<>();
 
-        for (String seatIdStr : seatIds) {
-            Long seatId = Long.valueOf(seatIdStr);
-            String seatKey = KEY_PREFIX + trainRunId + ":" + seatIdStr;
+        int i = 0;
+        for (String seatIdStr : seatIdStrs) {
+            String v = (values != null ? values.get(i) : null);
+            i++;
 
-            // 좌석별 TTL이 끝났으면 value가 null이라 여기서 자연스럽게 걸러짐
-            Optional<String> valueOpt = getValue(seatKey);
-            if (valueOpt.isEmpty()) {
-                // 원하면 인덱스에서 정리도 가능 (고민중)
-                // removeSetMember(indexKey, seatIdStr);
+            if (v == null) {
+                expiredSeatIdsToRemove.add(seatIdStr);
                 continue;
             }
 
-            String[] parts = valueOpt.get().split(":");
+            String[] parts = v.split(":");
             int depOrder = Integer.parseInt(parts[0]);
             int arrOrder = Integer.parseInt(parts[1]);
 
             if (depOrder < requestArrivalOrder && requestDepartureOrder < arrOrder) {
-                holds.add(new SeatHold(seatId, depOrder, arrOrder));
+                holds.add(new SeatHold(Long.valueOf(seatIdStr), depOrder, arrOrder));
             }
+        }
+
+        if (!expiredSeatIdsToRemove.isEmpty()) {
+            // 인덱스 청소 (성능 위해 한 번에)
+            stringRedisTemplate.opsForSet().remove(indexKey, expiredSeatIdsToRemove.toArray());
         }
 
         return holds;

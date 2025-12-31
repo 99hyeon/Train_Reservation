@@ -62,8 +62,11 @@ public class SecurityConfig {
                     .requestMatchers("/api/v1/token").authenticated()
 
                     .requestMatchers("/api/v1/trains", "/api/v1/seats", "/api/v1/cart").authenticated()
+//                    .requestMatchers("/api/v1/trains", "/api/v1/seats", "/api/v1/cart").permitAll()
 
                     .requestMatchers("/api/v1/kakao-pay/ready", "/api/v1/kakao-pay/approve").authenticated()
+
+//                    .requestMatchers("/actuator/**").permitAll()
 
                     .anyRequest().authenticated()
 //                    .anyRequest().permitAll()
