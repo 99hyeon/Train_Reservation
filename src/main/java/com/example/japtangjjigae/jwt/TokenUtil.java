@@ -1,32 +1,30 @@
 package com.example.japtangjjigae.jwt;
 
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
+import com.example.japtangjjigae.oauth2.CustomOAuth2User;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
 public class TokenUtil {
 
-    private final JWTUtil jwtUtil;
-
-    public Long currentUserId(HttpServletRequest request) {
-        String auth = request.getHeader("Authorization");
-        if (auth == null || !auth.startsWith("Bearer ")) {
-            throw new IllegalArgumentException("Missing or invalid Authorization header");
+    public Long currentUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new IllegalStateException("Unauthenticated");
         }
 
-        String accessToken = request.getHeader("Authorization").substring(7);
+        Object principal = auth.getPrincipal();
 
-        if (jwtUtil.isExpired(accessToken)) {
-            throw new IllegalArgumentException("Token expired");
+        if (principal instanceof CustomOAuth2User u) {
+            Long userId = u.getUserId();
+            if (userId == null) {
+                throw new IllegalStateException("UserId == null");
+            }
+            return userId;
         }
 
-        if (jwtUtil.getCategory(accessToken) != TokenCategory.ACCESS) {
-            throw new IllegalArgumentException("Not access token");
-        }
-
-        return jwtUtil.getUserId(accessToken);
+        throw new IllegalStateException("Unsupported principal: " + principal.getClass());
     }
 
 }
