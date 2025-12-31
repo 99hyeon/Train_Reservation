@@ -1,11 +1,10 @@
-package com.example.japtangjjigae.exception.advice;
+package com.example.japtangjjigae.exception.handler;
 
 import com.example.japtangjjigae.exception.SeatConflictException;
 import com.example.japtangjjigae.exception.SeatNotFoundException;
 import com.example.japtangjjigae.exception.TrainNotFoundException;
 import com.example.japtangjjigae.global.response.ApiResponse;
 import com.example.japtangjjigae.global.response.code.ResponseCode;
-import com.example.japtangjjigae.global.response.code.TrainResponseCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;

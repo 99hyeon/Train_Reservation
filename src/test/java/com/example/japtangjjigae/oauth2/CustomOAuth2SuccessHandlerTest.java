@@ -9,10 +9,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
 
 import com.example.japtangjjigae.jwt.JWTUtil;
+import com.example.japtangjjigae.jwt.TokenCategory;
+import com.example.japtangjjigae.jwt.TokenCookie;
+import com.example.japtangjjigae.jwt.TokenTTL;
+import com.example.japtangjjigae.token.repository.RefreshTokenRepository;
 import com.example.japtangjjigae.user.common.OAuthProvider;
-import jakarta.servlet.http.Cookie;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.Collections;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,17 +35,22 @@ class CustomOAuth2SuccessHandlerTest {
 
     @Mock
     private JWTUtil jwtUtil;
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
 
+    private ObjectMapper objectMapper;
     private CustomOAuth2SuccessHandler successHandler;
 
     @BeforeEach
-    void setUp(){
-        successHandler = new CustomOAuth2SuccessHandler(jwtUtil);
+    void setUp() {
+        objectMapper = new ObjectMapper();
+        successHandler = new CustomOAuth2SuccessHandler(jwtUtil, objectMapper,
+            refreshTokenRepository);
     }
 
     @Test
-    @DisplayName("principal이 CustomOAuth2User가 아니면 super로 빠지고 JWT 쿠키 없음")
-    void principal이_CustomOAuth2User가_아니면_super로_빠지고_JWT쿠키_없다() throws Exception {
+    @DisplayName("principal이 CustomOAuth2User가 아니면 토큰 발급/쿠키 세팅이 일어나지 않는다")
+    void principal이_CustomOAuth2User가__아니면_토큰발급_안함() throws Exception {
         //given
         Object notCustomPrincipal = "just-string-principal";
         Authentication auth = new UsernamePasswordAuthenticationToken(
@@ -55,21 +64,27 @@ class CustomOAuth2SuccessHandlerTest {
         successHandler.onAuthenticationSuccess(request, response, auth);
 
         //then
-        assertThat(response.getRedirectedUrl()).isEqualTo("/");
-        assertThat(response.getCookie("Authorization")).isNull();
-        verify(jwtUtil, never()).createJwt(anyLong(), any(OAuthProvider.class), anyLong());
+        assertThat(response.getHeader("Set-Cookie")).isNull();
+
+        verify(jwtUtil, never()).createJwt(any(TokenCategory.class), anyLong(),
+            any(OAuthProvider.class), anyLong());
+        verify(refreshTokenRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("로그인 성공 - signupTicket이 null이라는 것은 회원가입을 한 회원이라는 뜻")
+    @DisplayName("로그인 성공 - signupTicket이 null이라는 것은 회원가입을 한 회원이라는 뜻 / access, refresh 토큰 존재")
     void signupTicket이_null_이라_홈으로_리다이렉트하고_쿠키에_JWT를_심는다() throws Exception {
         //given
-        given(jwtUtil.createJwt(anyLong(), any(OAuthProvider.class), anyLong()))
-            .willReturn("mock.jwt.token");
+        given(jwtUtil.createJwt(eq(TokenCategory.REFRESH), eq(1L), eq(OAuthProvider.KAKAO), eq(TokenTTL.REFRESH.seconds())))
+            .willReturn("mock.refresh.jwt");
+        given(jwtUtil.createJwt(eq(TokenCategory.ACCESS), eq(1L), eq(OAuthProvider.KAKAO), eq(TokenTTL.ACCESS.seconds())))
+            .willReturn("mock.access.jwt");
 
         CustomOAuth2User principal = new CustomOAuth2User(
             Map.of("id", "dummy"),
             "KAKAO:1",
+            1L,
+            OAuthProvider.KAKAO,
             null
         );
 
@@ -84,32 +99,43 @@ class CustomOAuth2SuccessHandlerTest {
         successHandler.onAuthenticationSuccess(request, response, auth);
 
         //then
-        assertThat(response.getRedirectedUrl()).isEqualTo("http://localhost:8080/");
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_OK);
+        assertThat(response.getContentType()).isEqualTo("application/json;charset=UTF-8");
+        assertThat(response.getCharacterEncoding()).isEqualTo("UTF-8");
 
-        Cookie cookie = response.getCookie("Authorization");
-        assertThat(cookie).isNotNull();
-        assertThat(cookie.getValue()).isEqualTo("mock.jwt.token");
-        assertThat(cookie.isHttpOnly()).isTrue();
-        assertThat(cookie.getPath()).isEqualTo("/");
-        assertThat(cookie.getMaxAge()).isEqualTo(60 * 60);
+        String setCookie = response.getHeader("Set-Cookie");
+        assertThat(setCookie).isNotNull();
+        assertThat(setCookie).contains(TokenCookie.REFRESH_NAME + "=" + "mock.refresh.jwt");
+        assertThat(setCookie).contains("HttpOnly");
+        assertThat(setCookie).contains("Path=/");
 
-        verify(jwtUtil).createJwt(eq(1L), eq(OAuthProvider.KAKAO), eq(3600L));
+        assertThat(response.getHeader("Authorization")).isEqualTo("Bearer mock.access.jwt");
+
+        Map<String, Object> body = objectMapper.readValue(
+            response.getContentAsString(),
+            new TypeReference<>() {}
+        );
+
+        assertThat(body.get("status")).isEqualTo("LOGIN_SUCCESS");
+        assertThat(body.get("accessToken")).isEqualTo("Bearer mock.access.jwt");
+
+        verify(jwtUtil).createJwt(eq(TokenCategory.REFRESH), eq(1L), eq(OAuthProvider.KAKAO), eq(TokenTTL.REFRESH.seconds()));
+        verify(jwtUtil).createJwt(eq(TokenCategory.ACCESS), eq(1L), eq(OAuthProvider.KAKAO), eq(TokenTTL.ACCESS.seconds()));
+        verify(refreshTokenRepository).save(any());
     }
 
     @Test
     @DisplayName("singupTicket이 존재한다는 것은 최초 소셜로그인이라는 뜻")
     void singupTicket_존재해서_회원가입_하는_URL로_리다이렉트하고_쿠키에_JWT를_심는다() throws Exception {
         //given
-        given(jwtUtil.createJwt(anyLong(), any(OAuthProvider.class), anyLong()))
-            .willReturn("mock.jwt.token");
-
         String rawTicket = "t 1+2/=";
-        String encoded = URLEncoder.encode(rawTicket, StandardCharsets.UTF_8);
 
         CustomOAuth2User principal = new CustomOAuth2User(
-          Map.of("id", "dummy"),
-          "KAKAO:999",
-          rawTicket
+            Map.of("id", "dummy"),
+            "KAKAO:999",
+            null,               // 아직 내 서비스 userId 없음
+            OAuthProvider.KAKAO,
+            rawTicket
         );
 
         Authentication auth = new UsernamePasswordAuthenticationToken(
@@ -123,16 +149,24 @@ class CustomOAuth2SuccessHandlerTest {
         successHandler.onAuthenticationSuccess(request, response, auth);
 
         //then
-        String redirectUrl = response.getRedirectedUrl();
-        assertThat(redirectUrl).startsWith(
-            "http://localhost:8080/api/v1/check/signup?ticket="
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_OK);
+        assertThat(response.getContentType()).isEqualTo("application/json;charset=UTF-8");
+        assertThat(response.getCharacterEncoding()).isEqualTo("UTF-8");
+
+        assertThat(response.getHeader("Set-Cookie")).isNull();
+        assertThat(response.getHeader("Authorization")).isNull();
+
+        Map<String, Object> body = objectMapper.readValue(
+            response.getContentAsString(),
+            new TypeReference<>() {}
         );
-        assertThat(redirectUrl).endsWith(encoded);
 
-        Cookie cookie = response.getCookie("Authorization");
-        assertThat(cookie).isNotNull();
-        assertThat(cookie.getValue()).isEqualTo("mock.jwt.token");
+        assertThat(body.get("status")).isEqualTo("NEED_SIGNUP");
+        assertThat(body.get("ticket")).isEqualTo(rawTicket);
 
-        verify(jwtUtil).createJwt(eq(999L), eq(OAuthProvider.KAKAO), eq(3600L));
+        verify(jwtUtil, never()).createJwt(
+            any(TokenCategory.class), anyLong(), any(OAuthProvider.class), anyLong()
+        );
+        verify(refreshTokenRepository, never()).save(any());
     }
 }

@@ -1,6 +1,5 @@
 package com.example.japtangjjigae.cart.controller;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -73,7 +72,7 @@ class CartControllerTest {
     void trainStop_not_found() throws Exception {
         //given
         CustomOAuth2User principal = Mockito.mock(CustomOAuth2User.class);
-        Mockito.when(principal.getId()).thenReturn(1L);
+        Mockito.when(principal.getUserId()).thenReturn(1L);
 
         Authentication auth = new UsernamePasswordAuthenticationToken(
             principal,
@@ -107,7 +106,7 @@ class CartControllerTest {
     void cart_conflict_seat() throws Exception {
         //given
         CustomOAuth2User principal = Mockito.mock(CustomOAuth2User.class);
-        Mockito.when(principal.getId()).thenReturn(1L);
+        Mockito.when(principal.getUserId()).thenReturn(1L);
 
         Authentication auth = new UsernamePasswordAuthenticationToken(
             principal,
@@ -136,7 +135,7 @@ class CartControllerTest {
             price
         );
 
-        Mockito.when(cartStore.getOrCreate(principal.getId())).thenReturn(cart);
+        Mockito.when(cartStore.getOrCreate(principal.getUserId())).thenReturn(cart);
 
         String body = objectMapper.writeValueAsString(Map.of(
             "seatInfoDTOs", List.of(
@@ -168,7 +167,7 @@ class CartControllerTest {
     void add_cart_same_seat() throws Exception {
         //given
         CustomOAuth2User principal = Mockito.mock(CustomOAuth2User.class);
-        Mockito.when(principal.getId()).thenReturn(1L);
+        Mockito.when(principal.getUserId()).thenReturn(1L);
 
         Authentication auth = new UsernamePasswordAuthenticationToken(
             principal,
@@ -219,7 +218,7 @@ class CartControllerTest {
     void add_cart_success() throws Exception {
         //given
         CustomOAuth2User principal = Mockito.mock(CustomOAuth2User.class);
-        Mockito.when(principal.getId()).thenReturn(1L);
+        Mockito.when(principal.getUserId()).thenReturn(1L);
 
         Authentication auth = new UsernamePasswordAuthenticationToken(
             principal,
@@ -276,7 +275,7 @@ class CartControllerTest {
     void get_cart_empty() throws Exception {
         //given
         CustomOAuth2User principal = Mockito.mock(CustomOAuth2User.class);
-        Mockito.when(principal.getId()).thenReturn(1L);
+        Mockito.when(principal.getUserId()).thenReturn(1L);
 
         Authentication auth = new UsernamePasswordAuthenticationToken(
             principal,
@@ -301,7 +300,7 @@ class CartControllerTest {
     void get_cart_success() throws Exception {
         //given
         CustomOAuth2User principal = Mockito.mock(CustomOAuth2User.class);
-        Mockito.when(principal.getId()).thenReturn(1L);
+        Mockito.when(principal.getUserId()).thenReturn(1L);
 
         Authentication auth = new UsernamePasswordAuthenticationToken(
             principal,

@@ -1,4 +1,4 @@
-package com.example.japtangjjigae.exception.advice;
+package com.example.japtangjjigae.exception.handler;
 
 import com.example.japtangjjigae.exception.TicketNotFoundException;
 import com.example.japtangjjigae.exception.UserDuplicateException;

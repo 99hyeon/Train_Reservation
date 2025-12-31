@@ -57,7 +57,9 @@ public class SecurityConfig {
 
                     .requestMatchers("/login/oauth2/code/naver", "/login/oauth2/code/kakao").permitAll()
 
-                    .requestMatchers("/api/v1/check/signup", "/api/v1/users").authenticated()
+                    .requestMatchers("/api/v1/check/signup", "/api/v1/users").permitAll()
+
+                    .requestMatchers("/api/v1/token").authenticated()
 
                     .requestMatchers("/api/v1/trains", "/api/v1/seats", "/api/v1/cart").authenticated()
 

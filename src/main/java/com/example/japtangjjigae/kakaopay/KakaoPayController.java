@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+//todo: header에서 빼오기
+
 @Tag(name = "카카오페이 API", description = "카카오페이 관련 API 모음")
 @RequiredArgsConstructor
 @RestController
@@ -24,7 +26,7 @@ public class KakaoPayController {
     @PostMapping("/ready")
     public ReadyResponse ready(@AuthenticationPrincipal CustomOAuth2User customOAuth2User,
         @RequestBody KakaoPayRequestDTO request) {
-        Long userId = customOAuth2User.getId();
+        Long userId = customOAuth2User.getUserId();
 
         return kakaoPayProvider.ready(userId, request);
     }
@@ -32,7 +34,7 @@ public class KakaoPayController {
     @GetMapping("/approve")
     public ApproveResponse approve(@AuthenticationPrincipal CustomOAuth2User customOAuth2User,
         @RequestParam("orderId") Long orderId, @RequestParam("pg_token") String pgToken) {
-        Long userId = customOAuth2User.getId();
+        Long userId = customOAuth2User.getUserId();
 
         return kakaoPayProvider.approve(userId, orderId, pgToken);
     }

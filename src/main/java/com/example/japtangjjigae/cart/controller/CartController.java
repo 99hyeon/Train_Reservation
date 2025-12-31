@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+//todo: header에서 빼오기
+
 @Slf4j
 @Tag(name = "장바구니 API", description = "장바구니 관련 API 모음")
 @RequiredArgsConstructor
@@ -35,7 +37,7 @@ public class CartController {
     public ResponseEntity<String> addCart(
         @AuthenticationPrincipal CustomOAuth2User customOAuth2User,
         @Valid @RequestBody AddSeatToCartRequestDTO requestDto) {
-        Long userId = customOAuth2User.getId();
+        Long userId = customOAuth2User.getUserId();
 
         cartService.addSeat(userId, requestDto);
 
@@ -50,6 +52,6 @@ public class CartController {
         @AuthenticationPrincipal CustomOAuth2User customOAuth2User) {
         return ResponseEntity.ok(
             ApiResponse.from(TrainResponseCode.TRAIN_FOUND, cartService.getSeat(
-                customOAuth2User.getId())));
+                customOAuth2User.getUserId())));
     }
 }
