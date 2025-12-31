@@ -34,16 +34,18 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             providerInfo.provider()).orElse(null);
 
         String principalName = null;
+        Long userId = null;
         String ticket = null;
 
         if (user == null) {
             principalName = providerInfo.provider() + ":" + providerInfo.providerId();
             ticket = createSignupTicket(providerInfo);
         } else {
+            userId = user.getId();
             principalName = providerInfo.provider() + ":" + user.getId();
         }
 
-        return new CustomOAuth2User(oAuth2User.getAttributes(), principalName, ticket);
+        return new CustomOAuth2User(oAuth2User.getAttributes(), principalName, userId, providerInfo.provider(), ticket);
     }
 
     private String createSignupTicket(ProviderInfo info) {

@@ -2,11 +2,16 @@ package com.example.japtangjjigae.user.controller;
 
 import com.example.japtangjjigae.global.response.ApiResponse;
 import com.example.japtangjjigae.global.response.code.UserResponseCode;
+import com.example.japtangjjigae.jwt.TokenCookie;
+import com.example.japtangjjigae.jwt.TokenTTL;
 import com.example.japtangjjigae.user.dto.SignupRequestDTO;
 import com.example.japtangjjigae.user.dto.SignupResponseDTO;
 import com.example.japtangjjigae.user.service.LoginService;
+import com.example.japtangjjigae.token.service.TokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class LoginController {
 
     private final LoginService loginService;
+    private final TokenService tokenService;
 
     @Operation(
         summary = "회원가입 api",
@@ -42,17 +48,19 @@ public class LoginController {
     }
 
     @Operation(
-        summary = "회원가입 필요시 리다이렉트",
-        description = "소셜 로그인 이후 회원가입 필요시 프론트로 리다이렉트 대신"
-            + "임시로 백엔드쪽으로 티켓값만 확인 위해 만듦"
+        summary = "access token 발급 api",
+        description = "access token, refresh token 발급 및 reissue API"
     )
-    @GetMapping("/check/signup")
-    public ResponseEntity<String> signUpRedirectUrl(@RequestParam("ticket")
-    String ticket) {
+    @PostMapping("/token")
+    public ResponseEntity issueAccessToken(
+        HttpServletRequest request, HttpServletResponse response) {
+        String[] tokens = tokenService.issueAccessTokenRefreshToken(request);
+        String accessToken = tokens[0];
+        String refreshToken = tokens[1];
+        response.setHeader("Authorization", accessToken);
+        response.addHeader("Set-Cookie", TokenCookie.buildRefreshCookie(refreshToken, TokenTTL.REFRESH.seconds()));
 
-        log.info("ticket: " + ticket);
-
-        return ResponseEntity.ok("회원가입 티켓 확인 완료: " + ticket);
+        return ResponseEntity.status(HttpStatus.OK).body(accessToken);
     }
 
 }

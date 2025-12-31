@@ -5,6 +5,7 @@ import com.example.japtangjjigae.exception.TrainNotFoundException;
 import com.example.japtangjjigae.exception.UserNotFoundException;
 import com.example.japtangjjigae.global.response.code.TrainResponseCode;
 import com.example.japtangjjigae.global.response.code.UserResponseCode;
+import com.example.japtangjjigae.jwt.TokenUtil;
 import com.example.japtangjjigae.kakaopay.KakaoPayRequestDTO.ItemInfo;
 import com.example.japtangjjigae.kakaopay.KakaoPayResponse.ApproveResponse;
 import com.example.japtangjjigae.kakaopay.KakaoPayResponse.ReadyResponse;
@@ -54,8 +55,10 @@ public class KakaoPayProvider {
     private final SeatRepository seatRepository;
     private final OrderRepository orderRepository;
     private final PayStore payStore;
+    private final TokenUtil tokenUtil;
 
-    public ReadyResponse ready(Long userId, KakaoPayRequestDTO request) {
+    public ReadyResponse ready(KakaoPayRequestDTO request) {
+        Long userId = tokenUtil.currentUserId();
         Order order = createOrder(userId, request);
         Map<String, String> parameters = new HashMap<>();
 
@@ -113,7 +116,8 @@ public class KakaoPayProvider {
         return orderRepository.save(order);
     }
 
-    public ApproveResponse approve(Long userId, Long orderId, String pgToken) {
+    public ApproveResponse approve(Long orderId, String pgToken) {
+        Long userId = tokenUtil.currentUserId();
         Order order = orderRepository.findById(orderId).orElse(null);
 
         Map<String, String> parameters = new HashMap<>();

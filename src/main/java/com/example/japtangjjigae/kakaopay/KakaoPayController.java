@@ -2,10 +2,8 @@ package com.example.japtangjjigae.kakaopay;
 
 import com.example.japtangjjigae.kakaopay.KakaoPayResponse.ApproveResponse;
 import com.example.japtangjjigae.kakaopay.KakaoPayResponse.ReadyResponse;
-import com.example.japtangjjigae.oauth2.CustomOAuth2User;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,18 +20,14 @@ public class KakaoPayController {
     private final KakaoPayProvider kakaoPayProvider;
 
     @PostMapping("/ready")
-    public ReadyResponse ready(@AuthenticationPrincipal CustomOAuth2User customOAuth2User,
-        @RequestBody KakaoPayRequestDTO request) {
-        Long userId = customOAuth2User.getId();
-
-        return kakaoPayProvider.ready(userId, request);
+    public ReadyResponse ready(@RequestBody KakaoPayRequestDTO request) {
+        return kakaoPayProvider.ready(request);
     }
 
     @GetMapping("/approve")
-    public ApproveResponse approve(@AuthenticationPrincipal CustomOAuth2User customOAuth2User,
-        @RequestParam("orderId") Long orderId, @RequestParam("pg_token") String pgToken) {
-        Long userId = customOAuth2User.getId();
+    public ApproveResponse approve(@RequestParam("orderId") Long orderId,
+        @RequestParam("pg_token") String pgToken) {
 
-        return kakaoPayProvider.approve(userId, orderId, pgToken);
+        return kakaoPayProvider.approve(orderId, pgToken);
     }
 }

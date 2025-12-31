@@ -1,6 +1,7 @@
 package com.example.japtangjjigae.jwt;
 
 import com.example.japtangjjigae.oauth2.CustomOAuth2User;
+import com.example.japtangjjigae.user.common.OAuthProvider;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -34,18 +35,27 @@ public class JWTFilter extends OncePerRequestFilter {
             return;
         }
 
-        String token = resolveTokenFromCookies(request.getCookies());
+        String accessToken = resolveAccessToken(request);
 
-        if (token == null || jwtUtil.isExpired(token)) {
+        if (accessToken == null || jwtUtil.isExpired(accessToken)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        Long userId = jwtUtil.getUserId(token);
-        String principal = jwtUtil.getOAuthProvider(token) + ":" + userId.toString();
+        if(jwtUtil.getCategory(accessToken) != TokenCategory.ACCESS){
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        Long userId = jwtUtil.getUserId(accessToken);
+        OAuthProvider oAuthProvider = jwtUtil.getOAuthProvider(accessToken);
+
+        String principal = oAuthProvider + ":" + userId.toString();
         CustomOAuth2User customOAuth2User = new CustomOAuth2User(
             Collections.emptyMap(),
             principal,
+            userId,
+            oAuthProvider,
             null
         );
 
@@ -56,24 +66,17 @@ public class JWTFilter extends OncePerRequestFilter {
         );
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
-
         filterChain.doFilter(request, response);
     }
 
-    private String resolveTokenFromCookies(Cookie[] cookies) {
-        if (cookies == null) {
-            log.info("cookie가 널이란다.");
-            return null;
-        }
+    private String resolveAccessToken(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
 
-        for (Cookie cookie : cookies) {
-            if (ACCESS_TOKEN_COOKIE_NAME.equals(cookie.getName())) {
-                log.info("cookie : " + cookie.getValue());
-                return cookie.getValue();
-            }
-        }
+        if(header == null || header.isBlank()) return null;
 
-        return null;
+        if(!header.startsWith("Bearer ")) return null;
+
+        return header.substring(7);
     }
 
 }

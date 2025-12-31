@@ -10,6 +10,7 @@ import com.example.japtangjjigae.exception.SeatConflictException;
 import com.example.japtangjjigae.exception.TrainNotFoundException;
 import com.example.japtangjjigae.global.response.code.TrainResponseCode;
 import com.example.japtangjjigae.global.response.code.UserResponseCode;
+import com.example.japtangjjigae.jwt.TokenUtil;
 import com.example.japtangjjigae.redis.cart.CartStore;
 import com.example.japtangjjigae.redis.seathold.SeatHoldStore;
 import com.example.japtangjjigae.train.entity.TrainStop;
@@ -28,11 +29,13 @@ public class CartService {
     private static final long CART_TTL_SECONDS = 60 * 10L; // 예: 10분
 
 
+    private final TokenUtil tokenUtil;
     private final CartStore cartStore;
     private final SeatHoldStore seatHoldStore;
     private final TrainStopRepository trainStopRepository;
 
-    public void addSeat(Long userId, AddSeatToCartRequestDTO request) {
+    public void addSeat(AddSeatToCartRequestDTO request) {
+        Long userId = tokenUtil.currentUserId();
         Cart cart = cartStore.getOrCreate(userId);
 
         TrainStop departureStop = getTrainStop(request.getDepartureStopId());
@@ -92,7 +95,8 @@ public class CartService {
         );
     }
 
-    public GetCartResponseDTO getSeat(Long userId) {
+    public GetCartResponseDTO getSeat() {
+        Long userId = tokenUtil.currentUserId();
         Cart cart = cartStore.getOrCreate(userId);
 
         List<SeatDTO> seatList = new ArrayList<>();

@@ -1,6 +1,5 @@
 package com.example.japtangjjigae.cart.controller;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -68,18 +67,22 @@ class CartControllerTest {
         Mockito.reset(cartStore);
     }
 
-    @Test
-    @DisplayName("존재하지 않는 정차역일 경우")
-    void trainStop_not_found() throws Exception {
-        //given
+    private Authentication authWithUserId(Long userId) {
         CustomOAuth2User principal = Mockito.mock(CustomOAuth2User.class);
-        Mockito.when(principal.getId()).thenReturn(1L);
+        Mockito.when(principal.getUserId()).thenReturn(userId);
 
-        Authentication auth = new UsernamePasswordAuthenticationToken(
+        return new UsernamePasswordAuthenticationToken(
             principal,
             null,
             List.of(new SimpleGrantedAuthority("ROLE_USER"))
         );
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 정차역일 경우")
+    void trainStop_not_found() throws Exception {
+        //given
+        Authentication auth = authWithUserId(1L);
 
         String body = objectMapper.writeValueAsString(Map.of(
             "seatInfoDTOs", List.of(
@@ -106,14 +109,7 @@ class CartControllerTest {
     @DisplayName("장바구니에 이미 존재하는 좌석일 경우")
     void cart_conflict_seat() throws Exception {
         //given
-        CustomOAuth2User principal = Mockito.mock(CustomOAuth2User.class);
-        Mockito.when(principal.getId()).thenReturn(1L);
-
-        Authentication auth = new UsernamePasswordAuthenticationToken(
-            principal,
-            null,
-            List.of(new SimpleGrantedAuthority("ROLE_USER"))
-        );
+        Authentication auth = authWithUserId(1L);
 
         TrainRun trainRun = trainRunRepository.findAll().get(0);
         TrainStop departure = trainStopRepository.findByTrainRunAndStation_Code(trainRun,
@@ -136,7 +132,7 @@ class CartControllerTest {
             price
         );
 
-        Mockito.when(cartStore.getOrCreate(principal.getId())).thenReturn(cart);
+        Mockito.when(cartStore.getOrCreate(1L)).thenReturn(cart);
 
         String body = objectMapper.writeValueAsString(Map.of(
             "seatInfoDTOs", List.of(
@@ -167,14 +163,7 @@ class CartControllerTest {
     @DisplayName("같은 좌석 여러개 담을 경우")
     void add_cart_same_seat() throws Exception {
         //given
-        CustomOAuth2User principal = Mockito.mock(CustomOAuth2User.class);
-        Mockito.when(principal.getId()).thenReturn(1L);
-
-        Authentication auth = new UsernamePasswordAuthenticationToken(
-            principal,
-            null,
-            List.of(new SimpleGrantedAuthority("ROLE_USER"))
-        );
+        Authentication auth = authWithUserId(1L);
 
         TrainRun trainRun = trainRunRepository.findAll().get(0);
         TrainStop departure = trainStopRepository.findByTrainRunAndStation_Code(trainRun,
@@ -218,14 +207,7 @@ class CartControllerTest {
     @DisplayName("좌석 장바구니에 담기 성공")
     void add_cart_success() throws Exception {
         //given
-        CustomOAuth2User principal = Mockito.mock(CustomOAuth2User.class);
-        Mockito.when(principal.getId()).thenReturn(1L);
-
-        Authentication auth = new UsernamePasswordAuthenticationToken(
-            principal,
-            null,
-            List.of(new SimpleGrantedAuthority("ROLE_USER"))
-        );
+        Authentication auth = authWithUserId(1L);
 
         TrainRun trainRun = trainRunRepository.findAll().get(0);
         TrainStop departure = trainStopRepository.findByTrainRunAndStation_Code(trainRun,
@@ -275,14 +257,7 @@ class CartControllerTest {
     @DisplayName("장바구니 조회 - 장바구니 비어있을 경우")
     void get_cart_empty() throws Exception {
         //given
-        CustomOAuth2User principal = Mockito.mock(CustomOAuth2User.class);
-        Mockito.when(principal.getId()).thenReturn(1L);
-
-        Authentication auth = new UsernamePasswordAuthenticationToken(
-            principal,
-            null,
-            List.of(new SimpleGrantedAuthority("ROLE_USER"))
-        );
+        Authentication auth = authWithUserId(1L);
 
         Mockito.when(cartStore.getOrCreate(1L)).thenReturn(new Cart());
 
@@ -300,14 +275,7 @@ class CartControllerTest {
     @DisplayName("장바구니 조회 - 성공")
     void get_cart_success() throws Exception {
         //given
-        CustomOAuth2User principal = Mockito.mock(CustomOAuth2User.class);
-        Mockito.when(principal.getId()).thenReturn(1L);
-
-        Authentication auth = new UsernamePasswordAuthenticationToken(
-            principal,
-            null,
-            List.of(new SimpleGrantedAuthority("ROLE_USER"))
-        );
+        Authentication auth = authWithUserId(1L);
 
         TrainRun trainRun = trainRunRepository.findAll().get(0);
         TrainStop departure = trainStopRepository.findByTrainRunAndStation_Code(trainRun, "SEOUL")

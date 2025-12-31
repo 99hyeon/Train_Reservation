@@ -25,6 +25,10 @@ public class JWTUtil {
         this.jwtParser = Jwts.parser().verifyWith(secretKey).build();
     }
 
+    public TokenCategory getCategory(String token) {
+        return jwtParser.parseSignedClaims(token).getPayload().get("category", TokenCategory.class);
+    }
+
     public Long getUserId(String token) {
         return jwtParser.parseSignedClaims(token)
             .getPayload()
@@ -47,9 +51,10 @@ public class JWTUtil {
         return expiration.before(new Date());
     }
 
-    public String createJwt(Long userId, OAuthProvider oAuthProvider,
+    public String createJwt(TokenCategory category, Long userId, OAuthProvider oAuthProvider,
         long expiredSeconds) {
         return Jwts.builder()
+            .claim("category", category)
             .claim("userId", userId)
             .claim("oAuthProvider", oAuthProvider.name())
             .issuedAt(new Date(System.currentTimeMillis()))
