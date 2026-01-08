@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -28,24 +29,66 @@ public class CartService {
 
     private static final long CART_TTL_SECONDS = 60 * 10L; // 예: 10분
 
-
     private final TokenUtil tokenUtil;
     private final CartStore cartStore;
     private final SeatHoldStore seatHoldStore;
     private final TrainStopRepository trainStopRepository;
 
+    @Transactional
     public void addSeat(AddSeatToCartRequestDTO request) {
         Long userId = tokenUtil.currentUserId();
         Cart cart = cartStore.getOrCreate(userId);
 
         TrainStop departureStop = getTrainStop(request.getDepartureStopId());
         TrainStop arrivalStop = getTrainStop(request.getArrivalStopId());
+        Long trainRunId = checkTrainRunValidate(departureStop, arrivalStop);
 
         validateSeatConflicts(cart, request.getSeatInfoDTOs());
+        holdSeatsInCart(request, userId, cart, departureStop, arrivalStop, trainRunId);
+    }
 
-        for (SeatInfoDTO seatInfo : request.getSeatInfoDTOs()) {
-            holdSeatInCart(cart, departureStop, arrivalStop, seatInfo);
+    private void holdSeatsInCart(AddSeatToCartRequestDTO request, Long userId, Cart cart,
+        TrainStop departureStop, TrainStop arrivalStop, Long trainRunId) {
+        List<Long> seatIds = request.getSeatInfoDTOs().stream()
+            .map(SeatInfoDTO::getSeatId)
+            .toList();
+
+        int depOrder = departureStop.getStopOrder();
+        int arrOrder = arrivalStop.getStopOrder();
+
+        boolean held = seatHoldStore.holdSeat(userId, trainRunId, seatIds, depOrder, arrOrder,
+            CART_TTL_SECONDS);
+        if (!held) {
+            throw new SeatConflictException(TrainResponseCode.CONFLICT_SEAT);
         }
+
+        try {
+            for (SeatInfoDTO seatInfo : request.getSeatInfoDTOs()) {
+                cart.addItem(
+                    trainRunId,
+                    seatInfo.getSeatId(),
+                    departureStop.getStation().getCode(),
+                    departureStop.getDepartureAt(),
+                    arrivalStop.getStation().getCode(),
+                    arrivalStop.getArrivalAt(),
+                    seatInfo.getPrice()
+                );
+            }
+            cartStore.save(cart, CART_TTL_SECONDS);
+        } catch (Exception e) {
+            seatHoldStore.releaseSeat(trainRunId, seatIds, depOrder, arrOrder);
+            throw e;
+        }
+    }
+
+    private static Long checkTrainRunValidate(TrainStop departureStop, TrainStop arrivalStop) {
+        Long departureRunId = departureStop.getTrainRun().getId();
+        Long arrivalRunId = arrivalStop.getTrainRun().getId();
+
+        if (!departureRunId.equals(arrivalRunId)) {
+            throw new TrainNotFoundException(TrainResponseCode.MATCH_TRAIN_NOT_FOUND);
+        }
+        return departureRunId;
     }
 
     private TrainStop getTrainStop(Long request) {
@@ -55,44 +98,20 @@ public class CartService {
             );
     }
 
-    private static void validateSeatConflicts(Cart cart, List<SeatInfoDTO> seatInfoDTOS) {
-        for (SeatInfoDTO seatInfo : seatInfoDTOS) {
+    private void validateSeatConflicts(Cart cart, List<SeatInfoDTO> seatInfoDTOs) {
+        Set<Long> requestedSeatIds = new HashSet<>();
+        for (SeatInfoDTO s : seatInfoDTOs) {
+            requestedSeatIds.add(s.getSeatId());
+        }
+        if(requestedSeatIds.size() != seatInfoDTOs.size()) {
+            throw new SeatConflictException(TrainResponseCode.EXIST_SEAT);
+        }
+
+        for (SeatInfoDTO seatInfo : seatInfoDTOs) {
             if (cart.isContainsSeat(seatInfo.getSeatId())) {
                 throw new SeatConflictException(TrainResponseCode.EXIST_SEAT);
             }
         }
-
-        Set<Long> seatIds = new HashSet<>();
-        for (SeatInfoDTO seatInfo : seatInfoDTOS) {
-            if (!seatIds.add(seatInfo.getSeatId())) {
-                throw new SeatConflictException(TrainResponseCode.EXIST_SEAT);
-            }
-        }
-    }
-
-    private void holdSeatInCart(Cart cart, TrainStop departureStop, TrainStop arrivalStop,
-        SeatInfoDTO seatInfo) {
-        Long trainRunId = departureStop.getTrainRun().getId();
-        Long seatId = seatInfo.getSeatId();
-
-        cart.addItem(
-            trainRunId,
-            seatId,
-            departureStop.getStation().getCode(),
-            departureStop.getDepartureAt(),
-            arrivalStop.getStation().getCode(),
-            arrivalStop.getArrivalAt(),
-            seatInfo.getPrice()
-        );
-
-        cartStore.save(cart, CART_TTL_SECONDS);
-        seatHoldStore.holdSeat(
-            trainRunId,
-            seatId,
-            departureStop.getStopOrder(),
-            arrivalStop.getStopOrder(),
-            CART_TTL_SECONDS
-        );
     }
 
     public GetCartResponseDTO getSeat() {

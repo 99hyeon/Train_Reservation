@@ -3,9 +3,9 @@ package com.example.japtangjjigae.redis.seathold;
 import com.example.japtangjjigae.redis.AbstractRedisStore;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -14,23 +14,36 @@ public class RedisSeatHoldStore extends AbstractRedisStore implements SeatHoldSt
     private static final String KEY_PREFIX = "seat-hold:";
     private static final String INDEX_PREFIX = "seat-hold-index:";
 
+    private static final String SEG_PREFIX = "seat-hold-seg:";
+
+    private final DefaultRedisScript<Long> holdMultiScript = new DefaultRedisScript<>("""
+          for i=1,#KEYS do
+            if redis.call('EXISTS', KEYS[i]) == 1 then
+              return 0
+            end
+          end
+          for i=1,#KEYS do
+            redis.call('SET', KEYS[i], ARGV[1], 'EX', ARGV[2])
+          end
+          return 1
+        """, Long.class);
+
     public RedisSeatHoldStore(StringRedisTemplate stringRedisTemplate) {
         super(stringRedisTemplate);
     }
 
     @Override
-    public void holdSeat(Long trainRunId, Long seatId, int depOrder, int arrOrder,
+    public boolean holdSeat(Long userId, Long trainRunId, List<Long> seatIds, int depOrder, int arrOrder,
         long ttlSeconds) {
-
-        String seatKey = KEY_PREFIX + trainRunId + ":" + seatId;
-        String indexKey = INDEX_PREFIX + trainRunId;
-        String value = depOrder + ":" + arrOrder;
-
-        // 좌석 개별 TTL
-        setValue(seatKey, value, ttlSeconds);
-
-        // 해당 열차의 인덱스에 seatId 추가 (TTL은 안 줘도 됨)
-        addSetMember(indexKey, seatId.toString());
+        List<String> keys = new ArrayList<>();
+        for (Long seatId : seatIds) {
+            for (int seg = depOrder; seg < arrOrder; seg++) {
+                keys.add(SEG_PREFIX + trainRunId + ":" + seatId + ":" + seg);
+            }
+        }
+        Long result = stringRedisTemplate.execute(holdMultiScript, keys, String.valueOf(userId),
+            String.valueOf(ttlSeconds));
+        return result != null && result == 1L;
     }
 
     @Override
@@ -38,7 +51,9 @@ public class RedisSeatHoldStore extends AbstractRedisStore implements SeatHoldSt
         int requestArrivalOrder) {
         String indexKey = INDEX_PREFIX + trainRunId;
         Set<String> seatIdStrs = getSetMembers(indexKey);
-        if (seatIdStrs == null || seatIdStrs.isEmpty()) return List.of();
+        if (seatIdStrs == null || seatIdStrs.isEmpty()) {
+            return List.of();
+        }
 
         List<String> seatKeys = seatIdStrs.stream()
             .map(seatIdStr -> KEY_PREFIX + trainRunId + ":" + seatIdStr)
@@ -69,7 +84,6 @@ public class RedisSeatHoldStore extends AbstractRedisStore implements SeatHoldSt
         }
 
         if (!expiredSeatIdsToRemove.isEmpty()) {
-            // 인덱스 청소 (성능 위해 한 번에)
             stringRedisTemplate.opsForSet().remove(indexKey, expiredSeatIdsToRemove.toArray());
         }
 
@@ -77,11 +91,13 @@ public class RedisSeatHoldStore extends AbstractRedisStore implements SeatHoldSt
     }
 
     @Override
-    public void releaseSeat(Long trainRunId, Long seatId) {
-        String seatKey = KEY_PREFIX + trainRunId + ":" + seatId;
-        String indexKey = INDEX_PREFIX + trainRunId;
-
-        deleteKey(seatKey);
-        removeSetMember(indexKey, seatId.toString());
+    public void releaseSeat(Long trainRunId, List<Long> seatIds, int depOrder, int arrOrder) {
+        List<String> keys = new ArrayList<>();
+        for (Long seatId : seatIds) {
+            for (int seg = depOrder; seg < arrOrder; seg++) {
+                keys.add(SEG_PREFIX + trainRunId + ":" + seatId + ":" + seg);
+            }
+        }
+        stringRedisTemplate.delete(keys);
     }
 }
