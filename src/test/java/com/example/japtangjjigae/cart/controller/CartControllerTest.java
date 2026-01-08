@@ -154,7 +154,8 @@ class CartControllerTest {
 
         Mockito.verify(cartStore, Mockito.never()).save(Mockito.any(), Mockito.anyLong());
         Mockito.verify(seatHoldStore, Mockito.never()).holdSeat(
-            Mockito.anyLong(), Mockito.anyLong(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyLong()
+            Mockito.anyLong(), Mockito.anyLong(), Mockito.anyList(), Mockito.anyInt(),
+            Mockito.anyInt(), Mockito.anyLong()
         );
     }
 
@@ -198,8 +199,68 @@ class CartControllerTest {
 
         Mockito.verify(cartStore, Mockito.never()).save(Mockito.any(), Mockito.anyLong());
         Mockito.verify(seatHoldStore, Mockito.never()).holdSeat(
-            Mockito.anyLong(), Mockito.anyLong(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyLong()
+            Mockito.anyLong(), Mockito.anyLong(), Mockito.anyList(), Mockito.anyInt(),
+            Mockito.anyInt(), Mockito.anyLong()
         );
+    }
+
+    @Test
+    @Transactional
+    @DisplayName("이미 다른사람이 홀드한 좌석 홀드할 경우")
+    void add_seat_conflict_other_people() throws Exception {
+        //given
+        TrainRun trainRun = trainRunRepository.findAll().get(0);
+        TrainStop departure = trainStopRepository.findByTrainRunAndStation_Code(trainRun,
+            "SEOUL").orElseThrow();
+        TrainStop arrival = trainStopRepository.findByTrainRunAndStation_Code(trainRun,
+            "BUSAN").orElseThrow();
+
+        List<Seat> seats = seatRepository.findByCarriage_Train(trainRun.getTrain());
+        Long seatId = seats.get(0).getId();
+
+        int price = arrival.getCumulativeFare() - departure.getCumulativeFare();
+
+        Authentication auth = authWithUserId(1L);
+        Mockito.when(cartStore.getOrCreate(1L)).thenReturn(new Cart());
+
+        Mockito.when(seatHoldStore.holdSeat(
+                Mockito.eq(1L),
+                Mockito.eq(trainRun.getId()),
+                Mockito.eq(List.of(seatId)),
+                Mockito.eq(departure.getStopOrder()),
+                Mockito.eq(arrival.getStopOrder()),
+                Mockito.anyLong()
+            ))
+            .thenReturn(false);
+
+        String body = objectMapper.writeValueAsString(Map.of(
+            "seatInfoDTOs", List.of(
+                Map.of("seatId", seatId, "price", price)
+            ),
+            "departureStopId", departure.getId(),
+            "arrivalStopId", arrival.getId()
+        ));
+
+        //when & then
+        mockMvc.perform(post("/api/v1/cart")
+                .with(authentication(auth))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
+            .andExpect(status().is(TrainResponseCode.CONFLICT_SEAT.getCode()))
+            .andExpect(jsonPath("$.message").value(TrainResponseCode.CONFLICT_SEAT.getMessage()));
+
+        Mockito.verify(cartStore, Mockito.never()).save(Mockito.any(), Mockito.anyLong());
+        Mockito.verify(seatHoldStore, Mockito.times(1)).holdSeat(
+            Mockito.eq(1L),
+            Mockito.eq(trainRun.getId()),
+            Mockito.eq(List.of(seatId)),
+            Mockito.eq(departure.getStopOrder()),
+            Mockito.eq(arrival.getStopOrder()),
+            Mockito.anyLong()
+        );
+        Mockito.verify(seatHoldStore, Mockito.never())
+            .releaseSeat(Mockito.anyLong(), Mockito.anyList(), Mockito.anyInt(), Mockito.anyInt());
     }
 
     @Test
@@ -223,6 +284,16 @@ class CartControllerTest {
 
         Mockito.when(cartStore.getOrCreate(1L)).thenReturn(new Cart());
 
+        List<Long> seatIds = List.of(seatId1, seatId2);
+        Mockito.when(seatHoldStore.holdSeat(
+            Mockito.eq(1L),
+            Mockito.eq(trainRun.getId()),
+            Mockito.eq(seatIds),
+            Mockito.eq(departure.getStopOrder()),
+            Mockito.eq(arrival.getStopOrder()),
+            Mockito.anyLong()
+        )).thenReturn(true);
+
         String body = objectMapper.writeValueAsString(Map.of(
             "seatInfoDTOs", List.of(
                 Map.of("seatId", seatId1, "price", price),
@@ -240,11 +311,13 @@ class CartControllerTest {
                 .content(body))
             .andExpect(status().isOk());
 
-        Mockito.verify(cartStore, Mockito.times(2)).save(Mockito.any(Cart.class), Mockito.anyLong());
+        Mockito.verify(cartStore, Mockito.times(1))
+            .save(Mockito.any(Cart.class), Mockito.anyLong());
 
-        Mockito.verify(seatHoldStore, Mockito.times(2)).holdSeat(
+        Mockito.verify(seatHoldStore, Mockito.times(1)).holdSeat(
+            Mockito.eq(1L),
             Mockito.eq(trainRun.getId()),
-            Mockito.anyLong(),
+            Mockito.eq(seatIds),
             Mockito.eq(departure.getStopOrder()),
             Mockito.eq(arrival.getStopOrder()),
             Mockito.anyLong()
@@ -265,7 +338,8 @@ class CartControllerTest {
         mockMvc.perform(get("/api/v1/cart")
                 .with(authentication(auth)))
             .andExpect(status().is(UserResponseCode.CART_SEAT_NOT_FOUND.getCode()))
-            .andExpect(jsonPath("$.message").value(UserResponseCode.CART_SEAT_NOT_FOUND.getMessage()));
+            .andExpect(
+                jsonPath("$.message").value(UserResponseCode.CART_SEAT_NOT_FOUND.getMessage()));
 
         Mockito.verify(cartStore, Mockito.times(1)).getOrCreate(1L);
     }
