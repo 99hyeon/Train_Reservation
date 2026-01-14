@@ -14,6 +14,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class JWTUtil {
 
+    private static final String CATEGORY = "category";
+    private static final String USER_ID = "userId";
+    private static final String OAUTH_PROVIDER = "oAuthProvider";
+
     private final SecretKey secretKey;
     private final JwtParser jwtParser;
 
@@ -26,19 +30,20 @@ public class JWTUtil {
     }
 
     public TokenCategory getCategory(String token) {
-        return jwtParser.parseSignedClaims(token).getPayload().get("category", TokenCategory.class);
+        String raw = jwtParser.parseSignedClaims(token).getPayload().get(CATEGORY, String.class);
+        return TokenCategory.valueOf(raw);
     }
 
     public Long getUserId(String token) {
         return jwtParser.parseSignedClaims(token)
             .getPayload()
-            .get("userId", Long.class);
+            .get(USER_ID, Long.class);
     }
 
     public OAuthProvider getOAuthProvider(String token) {
         String provider = jwtParser.parseSignedClaims(token)
             .getPayload()
-            .get("oAuthProvider", String.class);
+            .get(OAUTH_PROVIDER, String.class);
 
         return OAuthProvider.valueOf(provider);
     }
@@ -54,9 +59,9 @@ public class JWTUtil {
     public String createJwt(TokenCategory category, Long userId, OAuthProvider oAuthProvider,
         long expiredSeconds) {
         return Jwts.builder()
-            .claim("category", category)
-            .claim("userId", userId)
-            .claim("oAuthProvider", oAuthProvider.name())
+            .claim(CATEGORY, category.name())
+            .claim(USER_ID, userId)
+            .claim(OAUTH_PROVIDER, oAuthProvider.name())
             .issuedAt(new Date(System.currentTimeMillis()))
             .expiration(new Date(System.currentTimeMillis() + expiredSeconds * 1000))
             .signWith(secretKey)

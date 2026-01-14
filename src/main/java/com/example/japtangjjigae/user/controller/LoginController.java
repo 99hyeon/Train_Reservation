@@ -17,11 +17,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -30,6 +28,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1")
 public class LoginController {
+
+    private static final String AUTH_HEADER = "Authorization";
+    private static final String COOKIE_HEADER = "Set-Cookie";
 
     private final LoginService loginService;
     private final TokenService tokenService;
@@ -57,8 +58,8 @@ public class LoginController {
         String[] tokens = tokenService.issueAccessTokenRefreshToken(request);
         String accessToken = tokens[0];
         String refreshToken = tokens[1];
-        response.setHeader("Authorization", accessToken);
-        response.addHeader("Set-Cookie", TokenCookie.buildRefreshCookie(refreshToken, TokenTTL.REFRESH.seconds()));
+        response.setHeader(AUTH_HEADER, accessToken);
+        response.addHeader(COOKIE_HEADER, TokenCookie.buildRefreshCookie(refreshToken, TokenTTL.REFRESH.seconds()));
 
         return ResponseEntity.status(HttpStatus.OK).body(accessToken);
     }

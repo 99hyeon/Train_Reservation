@@ -14,7 +14,6 @@ import com.example.japtangjjigae.order.OrderRepository;
 import com.example.japtangjjigae.redis.pay.PayStore;
 import com.example.japtangjjigae.ticket.PayStatus;
 import com.example.japtangjjigae.ticket.entity.Ticket;
-import com.example.japtangjjigae.ticket.repository.TicketRepository;
 import com.example.japtangjjigae.train.entity.Seat;
 import com.example.japtangjjigae.train.entity.TrainRun;
 import com.example.japtangjjigae.train.entity.TrainStop;
@@ -28,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -36,7 +36,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
-//todo: 예외처리들 수정 필요
+@Slf4j
 @Component
 @Transactional
 @RequiredArgsConstructor
@@ -46,9 +46,10 @@ public class KakaoPayProvider {
     private String secretKey;
     @Value("${kakaopay.cid}")
     private String cid;
+
+    private static final String AUTH_HEADER = "Authorization";
     private static final long PAY_TTL_SECONDS = 60 * 15L; // 15분
 
-    private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
     private final TrainRunRepository trainRunRepository;
     private final TrainStopRepository trainStopRepository;
@@ -61,13 +62,16 @@ public class KakaoPayProvider {
         Long userId = tokenUtil.currentUserId();
         Order order = createOrder(userId, request);
         Map<String, String> parameters = new HashMap<>();
+        int totalAmount = request.getItemInfos().stream()
+            .mapToInt(ItemInfo::getPrice)
+            .sum();
 
         parameters.put("cid", cid); // 가맹점 코드, 테스트용은 TC0ONETIME
         parameters.put("partner_order_id", String.valueOf(order.getId())); // 주문번호, 임시 : 1234567890 // 이건 뭐임?
         parameters.put("partner_user_id", String.valueOf(userId)); // 회원아이디, 임시 : 1234567890  // 이것 또한 뭐임??
         parameters.put("item_name", request.getItemName()); // 상품명
         parameters.put("quantity", String.valueOf(request.getItemInfos().size())); // 상품 수량
-        parameters.put("total_amount", String.valueOf(request.getItemInfos())); // 상품 총액 - 계산 필요
+        parameters.put("total_amount", String.valueOf(totalAmount)); // 상품 총액 - 계산 필요
         parameters.put("tax_free_amount", "0"); // 상품 비과세 금액
         parameters.put("approval_url",
             "http://localhost:8080/api/v1/kakao-pay/approve?orderId=" + order.getId()); // 결제 성공 시 redirct URL
@@ -81,6 +85,7 @@ public class KakaoPayProvider {
         ResponseEntity<ReadyResponse> response = restTemplate.postForEntity(url, entity,
             ReadyResponse.class);
 
+        log.info("tid: " + response.getBody().getTid());
         payStore.save(order.getId(), response.getBody().getTid(), PAY_TTL_SECONDS);
         return response.getBody();
     }
@@ -111,7 +116,6 @@ public class KakaoPayProvider {
             ticketList.add(newTicket);
         }
 
-        ticketRepository.saveAll(ticketList);
         Order order = Order.createOrder(user, ticketList, PayStatus.READY);
         return orderRepository.save(order);
     }
@@ -119,10 +123,12 @@ public class KakaoPayProvider {
     public ApproveResponse approve(Long orderId, String pgToken) {
         Long userId = tokenUtil.currentUserId();
         Order order = orderRepository.findById(orderId).orElse(null);
+        String tid = payStore.getTid(orderId)
+            .orElseThrow(() -> new IllegalStateException("tid not found for orderId=" + orderId));
 
         Map<String, String> parameters = new HashMap<>();
         parameters.put("cid", cid);
-        parameters.put("tid", String.valueOf(payStore.getTid(orderId)));   //null 처리 신경
+        parameters.put("tid", tid);   //null 처리 신경
         parameters.put("partner_order_id", String.valueOf(orderId));
         parameters.put("partner_user_id", String.valueOf(userId));
         parameters.put("pg_token", pgToken); // 결제승인 요청을 인증하는 토큰
@@ -141,8 +147,9 @@ public class KakaoPayProvider {
 
     private HttpHeaders getHeaders() {
         HttpHeaders headers = new HttpHeaders();
-        headers.add("Authorization", "SECRET_KEY " + secretKey);
+        headers.add(AUTH_HEADER, "SECRET_KEY " + secretKey);
         headers.add("Content-type", "application/json");
         return headers;
     }
+
 }

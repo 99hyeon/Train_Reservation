@@ -153,7 +153,9 @@ public class TrainService {
 
         TrainSummary trainSummary = TrainSummary.builder()
             .trainCode(trainRun.getTrain().getTrainCode())
+            .originStopId(departureStop.getId())
             .originCode(request.getOriginStationCode())
+            .destinationStopId(arrivalStop.getId())
             .destinationCode(request.getDestinationStationCode())
             .build();
 

@@ -23,7 +23,7 @@ public class CustomOAuth2FailureHandler implements AuthenticationFailureHandler 
 
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
-        AuthenticationException exception) throws IOException, ServletException {
+        AuthenticationException exception) throws IOException {
 
         ResponseCode responseCode = resolveResponseCode(exception);
 
