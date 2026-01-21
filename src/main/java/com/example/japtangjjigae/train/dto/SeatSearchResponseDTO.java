@@ -17,6 +17,8 @@ public class SeatSearchResponseDTO {
     @Builder
     public static class TrainSummary {
         private String trainCode;
+        private Long originStopId;
+        private Long destinationStopId;
         private String originCode;
         private LocalTime departureAt;
         private String destinationCode;

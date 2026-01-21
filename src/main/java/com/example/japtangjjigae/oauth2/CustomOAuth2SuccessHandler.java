@@ -24,6 +24,10 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class CustomOAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
+    private static final String AUTH_HEADER = "Authorization";
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final String COOKIE_HEADER = "Set-Cookie";
+
     private final JWTUtil jwtUtil;
     private final ObjectMapper objectMapper;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -62,11 +66,11 @@ public class CustomOAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHa
         String refreshToken = jwtUtil.createJwt(TokenCategory.REFRESH, userId, oAuthProvider,
             TokenTTL.REFRESH.seconds());
         String accessToken =
-            "Bearer " + jwtUtil.createJwt(TokenCategory.ACCESS, userId, oAuthProvider,
+            BEARER_PREFIX + jwtUtil.createJwt(TokenCategory.ACCESS, userId, oAuthProvider,
                 TokenTTL.ACCESS.seconds());
 
-        response.setHeader("Authorization", accessToken);
-        response.addHeader("Set-Cookie",
+        response.setHeader(AUTH_HEADER, accessToken);
+        response.addHeader(COOKIE_HEADER,
             TokenCookie.buildRefreshCookie(refreshToken, TokenTTL.REFRESH.seconds()));
 
         saveRefreshToken(userId, refreshToken);

@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,10 +31,11 @@ public class CartController {
         summary = "장바구니에 좌석 담기 api"
     )
     @PostMapping("/cart")
-    public ResponseEntity<String> addCart(
+    public ResponseEntity<ApiResponse<String>> addCart(
         @Valid @RequestBody AddSeatToCartRequestDTO requestDto) {
         cartService.addSeat(requestDto);
-        return ResponseEntity.ok("장바구니에 좌석 담기 완료");
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.from(TrainResponseCode.CART_CREATED));
     }
 
     @Operation(
