@@ -5,6 +5,14 @@ spring:
       local: local, common, secret
       blue: blue, common, secret
       green: green, common, secret
+#  jpa:
+#    properties:
+#      hibernate:
+#        generate_statistics: true
+#        session:
+#          events:
+#            log:
+#              LOG_QUERIES_SLOWER_THAN_MS: 200
 
 server:
   env: blue
@@ -12,6 +20,12 @@ server:
     encoding:
       charset: utf-8
       force: true
+
+#logging:
+#  level:
+#    org.hibernate.SQL: debug
+#    org.hibernate.orm.jdbc.bind: trace
+#    org.hibernate.stat: debug
 
 ---
 
