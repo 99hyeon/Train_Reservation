@@ -1,10 +1,10 @@
 name: CICD
 
 on:
+  push:
+    branches: [ "main" ]
   pull_request:
     branches: ["main"]
-    paths-ignore:
-      - 'frontend/**'
 
 permissions:
   contents: read
@@ -33,81 +33,113 @@ jobs:
           ./gradlew clean build --no-daemon
 
       - name: Login to DockerHub
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build Docker image
-        run: docker build --platform linux/amd64 -t ${{ secrets.DOCKERHUB_USERNAME }}/jjigae_server .
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: docker build --platform linux/amd64 -t ${{ secrets.DOCKERHUB_USERNAME }}/train_server .
 
       - name: Push Docker image
-        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/jjigae_server:latest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/train_server:latest
 
   deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Set target IP and decide blue/green
         run: |
-          STATUS=$(curl -o /dev/null -w "%{http_code}" "http://${{ secrets.JJIGAE_SERVER_IP }}/env")
-          echo $STATUS
+          STATUS=$(curl -o /dev/null -w "%{http_code}" "http://${{ secrets.TRAIN_SERVER_IP }}/env")
           if [ $STATUS = 200 ]; then
-            CURRENT_UPSTREAM=$(curl -s "http://${{ secrets.JJIGAE_SERVER_IP }}/env")
+            CURRENT_UPSTREAM=$(curl -s "http://${{ secrets.TRAIN_SERVER_IP }}/env" | tr -d '\r\n')
           else
             CURRENT_UPSTREAM=green
           fi
+          
           echo CURRENT_UPSTREAM=$CURRENT_UPSTREAM >> $GITHUB_ENV
-          if [ $CURRENT_UPSTREAM = blue ]; then
+          if [ $CURRENT_UPSTREAM = "blue" ]; then
             echo "CURRENT_PORT=8080" >> $GITHUB_ENV
             echo "STOPPED_PORT=8081" >> $GITHUB_ENV
             echo "TARGET_UPSTREAM=green" >> $GITHUB_ENV
-          elif [ $CURRENT_UPSTREAM = green ]; then
+          elif [ $CURRENT_UPSTREAM = "green" ]; then
             echo "CURRENT_PORT=8081" >> $GITHUB_ENV
             echo "STOPPED_PORT=8080" >> $GITHUB_ENV
             echo "TARGET_UPSTREAM=blue" >> $GITHUB_ENV
           else
-            echo "error"
+            echo "error: invalid CURRENT_UPSTREAM=$CURRENT_UPSTREAM"
             exit 1
           fi
 
       - name: Deploy new app on stopped upstream
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.0
         with:
           username: ubuntu
-          host: ${{ secrets.JJIGAE_SERVER_IP }}
+          host: ${{ secrets.TRAIN_SERVER_IP }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script_stop: true
           script: |
-            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/jjigae_server:latest
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/train_server:latest
             if command -v docker-compose >/dev/null 2>&1; then
               sudo docker-compose -f docker-compose-${{ env.TARGET_UPSTREAM }}.yml up -d
             else
               sudo docker compose -f docker-compose-${{ env.TARGET_UPSTREAM }}.yml up -d
             fi
 
-      - name: Health check new target
-        uses: jtalk/url-health-check-action@v3
-        with:
-          url: http://${{ secrets.JJIGAE_SERVER_IP}}:${{ env.STOPPED_PORT }}/env
-          max-attempts: 6
-          retry-delay: 10s
-
-      - name: Switch Nginx upstream
-        uses: appleboy/ssh-action@master
+      - name: Health check new target (from EC2 localhost)
+        uses: appleboy/ssh-action@v1.2.0
         with:
           username: ubuntu
-          host: ${{ secrets.JJIGAE_SERVER_IP}}
+          host: ${{ secrets.TRAIN_SERVER_IP }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script_stop: true
+          script: |
+            PORT=${{ env.STOPPED_PORT }}
+            for i in {1..12}; do
+              if curl -fsS "http://127.0.0.1:${PORT}/env" >/dev/null; then
+                echo "health check success"
+                exit 0
+              fi
+              echo "retry $i..."
+              sleep 5
+            done
+            echo "health check failed"
+            exit 1
+
+      - name: Cleanup new target if health check failed
+        if: failure()
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          username: ubuntu
+          host: ${{ secrets.TRAIN_SERVER_IP }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script_stop: true
+          script: |
+            if command -v docker-compose >/dev/null 2>&1; then
+              sudo docker-compose -f docker-compose-${{ env.TARGET_UPSTREAM }}.yml down || true
+            else
+              sudo docker compose -f docker-compose-${{ env.TARGET_UPSTREAM }}.yml down || true
+            fi
+
+      - name: Switch Nginx upstream
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          username: ubuntu
+          host: ${{ secrets.TRAIN_SERVER_IP}}
           key: ${{ secrets.EC2_SSH_KEY }}
           script_stop: true
           script: |
             sudo docker exec -i nginxserver sh -lc 'echo "set \$service_url ${{ env.TARGET_UPSTREAM }};" > /etc/nginx/conf.d/service-env.inc && nginx -s reload'
 
       - name: Stop old app
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.0
         with:
           username: ubuntu
-          host: ${{ secrets.JJIGAE_SERVER_IP}}
+          host: ${{ secrets.TRAIN_SERVER_IP}}
           key: ${{ secrets.EC2_SSH_KEY }}
           script_stop: true
           script: |
