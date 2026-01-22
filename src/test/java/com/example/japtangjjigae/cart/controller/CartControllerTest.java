@@ -309,7 +309,7 @@ class CartControllerTest {
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body))
-            .andExpect(status().isOk());
+            .andExpect(status().isCreated());
 
         Mockito.verify(cartStore, Mockito.times(1))
             .save(Mockito.any(Cart.class), Mockito.anyLong());
