@@ -27,6 +27,15 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
+
+    env:
+      # CI에서 ${spring.jwt.secret} 해결용 (너 로그에서 터진 그 키)
+      SPRING_JWT_SECRET: test-secret
+      # Redis 연결도 CI 러너 기준(localhost)으로 고정
+      SPRING_DATA_REDIS_HOST: localhost
+      SPRING_DATA_REDIS_PORT: "6379"
+      # test 프로파일 쓰고 싶으면
+      SPRING_PROFILES_ACTIVE: test
           
     steps:
       - name: Checkout
@@ -43,6 +52,13 @@ jobs:
         run: |
           chmod +x ./gradlew
           ./gradlew clean build --no-daemon --stacktrace --info
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: build/reports/tests/test
 
       - name: Login to DockerHub
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
