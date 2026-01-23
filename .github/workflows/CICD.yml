@@ -80,28 +80,53 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      # - name: Set target IP and decide blue/green
+      #   run: |
+      #     STATUS=$(curl -o /dev/null -w "%{http_code}" "http://${{ secrets.TRAIN_SERVER_IP }}/env")
+      #     if [ $STATUS = 200 ]; then
+      #       CURRENT_UPSTREAM=$(curl -s "http://${{ secrets.TRAIN_SERVER_IP }}/env" | tr -d '\r\n')
+      #     else
+      #       CURRENT_UPSTREAM=green
+      #     fi
+          
+      #     echo CURRENT_UPSTREAM=$CURRENT_UPSTREAM >> $GITHUB_ENV
+      #     if [ $CURRENT_UPSTREAM = "blue" ]; then
+      #       echo "CURRENT_PORT=8080" >> $GITHUB_ENV
+      #       echo "STOPPED_PORT=8081" >> $GITHUB_ENV
+      #       echo "TARGET_UPSTREAM=green" >> $GITHUB_ENV
+      #     elif [ $CURRENT_UPSTREAM = "green" ]; then
+      #       echo "CURRENT_PORT=8081" >> $GITHUB_ENV
+      #       echo "STOPPED_PORT=8080" >> $GITHUB_ENV
+      #       echo "TARGET_UPSTREAM=blue" >> $GITHUB_ENV
+      #     else
+      #       echo "error: invalid CURRENT_UPSTREAM=$CURRENT_UPSTREAM"
+      #       exit 1
+      #     fi
+
       - name: Set target IP and decide blue/green
         run: |
-          STATUS=$(curl -o /dev/null -w "%{http_code}" "http://${{ secrets.TRAIN_SERVER_IP }}/env")
-          if [ $STATUS = 200 ]; then
-            CURRENT_UPSTREAM=$(curl -s "http://${{ secrets.TRAIN_SERVER_IP }}/env" | tr -d '\r\n')
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            --connect-timeout 2 --max-time 3 \
+            "http://${{ secrets.TRAIN_SERVER_IP }}/env" || echo "000")
+
+          if [ "$STATUS" = "200" ]; then
+            CURRENT_UPSTREAM=$(curl -s --connect-timeout 2 --max-time 3 \
+              "http://${{ secrets.TRAIN_SERVER_IP }}/env" | tr -d '\r\n')
           else
             CURRENT_UPSTREAM=green
           fi
-          
-          echo CURRENT_UPSTREAM=$CURRENT_UPSTREAM >> $GITHUB_ENV
-          if [ $CURRENT_UPSTREAM = "blue" ]; then
-            echo "CURRENT_PORT=8080" >> $GITHUB_ENV
+
+          echo "CURRENT_UPSTREAM=$CURRENT_UPSTREAM" >> $GITHUB_ENV
+          if [ "$CURRENT_UPSTREAM" = "blue" ]; then
+          echo "CURRENT_PORT=8080" >> $GITHUB_ENV
             echo "STOPPED_PORT=8081" >> $GITHUB_ENV
             echo "TARGET_UPSTREAM=green" >> $GITHUB_ENV
-          elif [ $CURRENT_UPSTREAM = "green" ]; then
+          else
             echo "CURRENT_PORT=8081" >> $GITHUB_ENV
             echo "STOPPED_PORT=8080" >> $GITHUB_ENV
             echo "TARGET_UPSTREAM=blue" >> $GITHUB_ENV
-          else
-            echo "error: invalid CURRENT_UPSTREAM=$CURRENT_UPSTREAM"
-            exit 1
           fi
+
 
       - name: Deploy new app on stopped upstream
         uses: appleboy/ssh-action@v1.2.0
