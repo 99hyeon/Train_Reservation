@@ -118,7 +118,7 @@ jobs:
 
           echo "CURRENT_UPSTREAM=$CURRENT_UPSTREAM" >> $GITHUB_ENV
           if [ "$CURRENT_UPSTREAM" = "blue" ]; then
-          echo "CURRENT_PORT=8080" >> $GITHUB_ENV
+            echo "CURRENT_PORT=8080" >> $GITHUB_ENV
             echo "STOPPED_PORT=8081" >> $GITHUB_ENV
             echo "TARGET_UPSTREAM=green" >> $GITHUB_ENV
           else
@@ -135,13 +135,17 @@ jobs:
           host: ${{ secrets.TRAIN_SERVER_IP }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script_stop: true
+          # script: |
+          #   sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/train_server:latest
+          #   if command -v docker-compose >/dev/null 2>&1; then
+          #     sudo docker-compose -f docker-compose-${{ env.TARGET_UPSTREAM }}.yml up -d
+          #   else
+          #     sudo docker compose -f docker-compose-${{ env.TARGET_UPSTREAM }}.yml up -d
+          #   fi
+
           script: |
             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/train_server:latest
-            if command -v docker-compose >/dev/null 2>&1; then
-              sudo docker-compose -f docker-compose-${{ env.TARGET_UPSTREAM }}.yml up -d
-            else
-              sudo docker compose -f docker-compose-${{ env.TARGET_UPSTREAM }}.yml up -d
-            fi
+            sudo docker compose -f docker-compose-${{ env.TARGET_UPSTREAM }}.yml up -d
 
       - name: Health check new target (from EC2 localhost)
         uses: appleboy/ssh-action@v1.2.0
@@ -171,12 +175,14 @@ jobs:
           host: ${{ secrets.TRAIN_SERVER_IP }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script_stop: true
+          # script: |
+          #   if command -v docker-compose >/dev/null 2>&1; then
+          #     sudo docker-compose -f docker-compose-${{ env.TARGET_UPSTREAM }}.yml down || true
+          #   else
+          #     sudo docker compose -f docker-compose-${{ env.TARGET_UPSTREAM }}.yml down || true
+          #   fi
           script: |
-            if command -v docker-compose >/dev/null 2>&1; then
-              sudo docker-compose -f docker-compose-${{ env.TARGET_UPSTREAM }}.yml down || true
-            else
-              sudo docker compose -f docker-compose-${{ env.TARGET_UPSTREAM }}.yml down || true
-            fi
+            sudo docker compose -f docker-compose-${{ env.TARGET_UPSTREAM }}.yml down || true
 
       - name: Switch Nginx upstream
         uses: appleboy/ssh-action@v1.2.0
