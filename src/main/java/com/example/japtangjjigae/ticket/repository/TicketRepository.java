@@ -14,13 +14,13 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         from Ticket t
             join t.departureStop ds
             join t.arrivalStop arr
-        where t.trainRun = :trainRun
+        where t.trainRun.id = :trainRunId
           and ds.stopOrder < :requestArrivalOrder
           and :requestDepartureOrder < arr.stopOrder
           and t.deletedAt is null
         """)
     int countBookedSeatsInSection(
-        @Param("trainRun") TrainRun trainRun,
+        @Param("trainRunId") Long trainRunId,
         @Param("requestDepartureOrder") int requestDepartureOrder,
         @Param("requestArrivalOrder") int requestArrivalOrder
     );

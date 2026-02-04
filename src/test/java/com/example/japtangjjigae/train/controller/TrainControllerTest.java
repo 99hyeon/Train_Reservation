@@ -38,6 +38,7 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -67,16 +68,21 @@ class TrainControllerTest {
     UserRepository userRepository;
     @Autowired
     CarriageRepository carriageRepository;
+    @Autowired
+    CacheManager cacheManager;
 
     @MockitoBean
     SeatHoldStore seatHoldStore;
 
     @AfterEach
     void tearDown() {
+        cacheManager.getCache("trainSearchBase").clear();
+        cacheManager.getCache("trainTotalSeats").clear();
+
         ticketRepository.deleteAll();
         orderRepository.deleteAll();
         userRepository.deleteAll();
-        Mockito.reset(seatHoldStore);
+        Mockito.clearInvocations(seatHoldStore);
     }
 
     @Test

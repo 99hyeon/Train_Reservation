@@ -6,6 +6,8 @@ import com.example.japtangjjigae.global.response.code.TrainResponseCode;
 import com.example.japtangjjigae.redis.seathold.SeatHoldStore;
 import com.example.japtangjjigae.redis.seathold.SeatHoldStore.SeatHold;
 import com.example.japtangjjigae.ticket.repository.TicketRepository;
+import com.example.japtangjjigae.train.dto.CacheTrainInfoDTO;
+import com.example.japtangjjigae.train.dto.CacheTrainSearchResponseDTO;
 import com.example.japtangjjigae.train.dto.SeatSearchRequestDTO;
 import com.example.japtangjjigae.train.dto.SeatSearchResponseDTO;
 import com.example.japtangjjigae.train.dto.SeatSearchResponseDTO.CarriageSeatDTO;
@@ -30,9 +32,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,54 +45,43 @@ public class TrainService {
     private final SeatRepository seatRepository;
     private final TicketRepository ticketRepository;
     private final SeatHoldStore seatHoldStore;
+    private final TrainCacheService trainCacheService;
 
     @Transactional(readOnly = true)
     public TrainSearchResponseDTO searchTrain(TrainSearchRequestDTO request, int page) {
-        String originCode = request.getOriginStationCode();
-        String destinationCode = request.getDestinationStationCode();
-
-        Pageable pageable = PageRequest.of(page, 10);
-        Page<TrainRun> pageTrainRuns = trainRunRepository.findTrainRuns(
-            originCode,
-            destinationCode,
-            request.getRunDate(),
-            request.getDepartureTime(), pageable);
-        List<TrainRun> trainRuns = pageTrainRuns.getContent();
+        CacheTrainSearchResponseDTO caches = trainCacheService.searchTrainDB(request, page);
 
         List<TrainInfoDTO> trains = new ArrayList<>();
-
-        for (TrainRun trainRun : trainRuns) {
-            TrainStop departureTrainStop = getTrainStop(trainRun, originCode);
-            TrainStop arrivalTrainStop = getTrainStop(trainRun, destinationCode);
+        for (CacheTrainInfoDTO cache : caches.trains()) {
+            TrainRun trainRun = trainRunRepository.getReferenceById(cache.trainRunId());
 
             boolean soldOut = isSoldOut(
-                trainRun,
-                departureTrainStop.getStopOrder(),
-                arrivalTrainStop.getStopOrder()
+                cache.trainRunId(),
+                cache.trainId(),
+                cache.departureOrder(),
+                cache.arrivalOrder()
             );
-
-            int price =
-                arrivalTrainStop.getCumulativeFare() - departureTrainStop.getCumulativeFare();
 
             trains.add(new TrainInfoDTO(
                 trainRun.getId(),
                 trainRun.getTrain().getTrainCode(),
-                departureTrainStop.getDepartureAt(),
-                arrivalTrainStop.getArrivalAt(),
-                price,
+                cache.departureAt(),
+                cache.arrivalAt(),
+                cache.price(),
                 soldOut
             ));
         }
 
-        return new TrainSearchResponseDTO(originCode, destinationCode, trains);
+        return new TrainSearchResponseDTO(caches.originStationCode(),
+            caches.destinationStationCode(), trains);
     }
 
-    private boolean isSoldOut(TrainRun trainRun, int departureOrder, int arrivalOrder) {
-        int totalSeats = seatRepository.countByCarriage_Train(trainRun.getTrain());
-        int bookedSeats = ticketRepository.countBookedSeatsInSection(trainRun, departureOrder,
+    private boolean isSoldOut(Long trainRunId, Long trainId, int departureOrder, int arrivalOrder) {
+        int totalSeats = trainCacheService.getTotalSeatsCached(trainId);
+        int bookedSeats = ticketRepository.countBookedSeatsInSection(trainRunId, departureOrder,
             arrivalOrder);
 
-        List<SeatHold> holdSeats = seatHoldStore.findOverLappingHolds(trainRun.getId(),
+        List<SeatHold> holdSeats = seatHoldStore.findOverLappingHolds(trainRunId,
             departureOrder, arrivalOrder);
 
         int holdSeatCount = (int) holdSeats.stream()

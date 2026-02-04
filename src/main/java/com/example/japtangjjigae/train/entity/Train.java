@@ -26,6 +26,10 @@ public class Train {
         return newTrain;
     }
 
+    public Long getId() {
+        return id;
+    }
+
     public String getTrainCode() {
         return trainCode;
     }
