@@ -49,7 +49,8 @@ public class TrainService {
 
     @Transactional(readOnly = true)
     public TrainSearchResponseDTO searchTrain(TrainSearchRequestDTO request, int page) {
-        CacheTrainSearchResponseDTO caches = trainCacheService.searchTrainDB(request, page);
+//        CacheTrainSearchResponseDTO caches = trainCacheService.searchTrainDB(request, page);
+        CacheTrainSearchResponseDTO caches = trainCacheService.searchTrainBaseCached(request, page);
 
         List<TrainInfoDTO> trains = new ArrayList<>();
         for (CacheTrainInfoDTO cache : caches.trains()) {
@@ -77,7 +78,8 @@ public class TrainService {
     }
 
     private boolean isSoldOut(Long trainRunId, Long trainId, int departureOrder, int arrivalOrder) {
-        int totalSeats = trainCacheService.getTotalSeatsCached(trainId);
+//        int totalSeats = trainCacheService.getTotalSeatsCached(trainId);
+        int totalSeats = trainCacheService.getTotalSeatsCached2(trainId);
         int bookedSeats = ticketRepository.countBookedSeatsInSection(trainRunId, departureOrder,
             arrivalOrder);
 
