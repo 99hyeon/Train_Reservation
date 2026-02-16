@@ -42,13 +42,8 @@
 
 ## Docs
 - Wiki: https://github.com/99hyeon/Japtangjjigae/wiki
-- Swagger: (추가 예정)
-- Swagger(Local): http://localhost:8080/swagger-ui/index.html
 - 📁 프로젝트 구조 : https://github.com/99hyeon/Japtangjjigae/wiki
-- 🧪 Load Test : k6 기반 시나리오 및 결과/개선 기록은 Wiki에 정리 (추가 예정)
-- 커밋 컨벤션 : (추가 예정)
-- 브랜치 전략 : (추가 예정)
-- 에러 정책 : (추가 예정) 
+- 🧪 Load Test : k6 기반 시나리오 및 결과/개선 기록은 Wiki에 정리
 
 
 <!-- 
